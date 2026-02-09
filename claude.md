@@ -144,3 +144,25 @@ When multiple valid approaches exist, choose based on:
 - Always use context7 when I need code generation, setup or configuration steps, or
 library/API documentation. This means you should automatically use the Context7 MCP
 tools to resolve library id and get library docs without me having to explicitly ask.
+
+## Project Context
+
+### 项目概况
+- **红包"颈"上添花** — 体感健身小游戏（HTML + CSS + JS 单文件为主）
+- 使用 TensorFlow.js MoveNet 做姿态检测，摄像头实时识别
+- 存储：IndexedDB（主）/ localStorage（备）
+- 本地服务器运行：`python3 -m http.server`
+
+### 架构要点
+- `index.html` — 主文件，包含全部 HTML/CSS/JS（~1600行）
+- `js/storage-idb.js` — IndexedDB 存储模块
+- `js/storage.js` — localStorage 备用存储
+- `js/game/` — ItemSystem、ParticleSystem、SoundSystem 模块
+- `models/` — MoveNet 本地模型文件（model.json + shard bins）
+- `libs/` — TensorFlow.js 本地依赖
+
+### 经验教训
+- **模型下载要验证**：从 CDN 下载二进制文件时，先检查文件大小和类型，小文件（<1KB）多半是错误页面
+- **tfhub.dev URL 需加 `?tfjs-format=file`** 才能正确下载模型权重
+- **编辑大文件分段操作**：index.html 改动多时，按功能逐段编辑，每次改一处，避免上下文混乱
+- **删代码要彻底**：删除功能时追踪所有引用点（定义、初始化、处理逻辑、UI），不留死代码
