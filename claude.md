@@ -166,3 +166,4 @@ tools to resolve library id and get library docs without me having to explicitly
 - **tfhub.dev URL 需加 `?tfjs-format=file`** 才能正确下载模型权重
 - **编辑大文件分段操作**：index.html 改动多时，按功能逐段编辑，每次改一处，避免上下文混乱
 - **删代码要彻底**：删除功能时追踪所有引用点（定义、初始化、处理逻辑、UI），不留死代码
+- **工具输出分段**：使用工具输出内容时，必须分多次分段输出，避免一次输出过大内容
