@@ -1,0 +1,23 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 比耶手势 -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round">
+    <!-- 头部 -->
+    <circle cx="50" cy="20" r="12"/>
+
+    <!-- 身体 -->
+    <line x1="50" y1="32" x2="50" y2="80"/>
+
+    <!-- 左手臂 - 比耶 -->
+    <line x1="50" y1="40" x2="30" y2="30"/>
+
+    <!-- V字手势 - 加粗 -->
+    <line x1="30" y1="30" x2="25" y2="20" stroke-width="5"/>
+    <line x1="30" y1="30" x2="35" y2="20" stroke-width="5"/>
+
+    <!-- 右手臂 -->
+    <line x1="50" y1="40" x2="65" y2="55"/>
+  </g>
+
+  <!-- V字符号 -->
+  <text x="28" y="18" font-size="16" fill="#FFD700" font-weight="bold">V</text>
+</svg>

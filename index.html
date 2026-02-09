@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>红包"颈"上添花，新春放松小游戏</title>
+    <!-- TensorFlow.js Dependencies - 本地版本 -->
+    <script src="libs/tf-core.min.js"></script>
+    <script src="libs/tf-converter.min.js"></script>
+    <script src="libs/tf-backend-webgl.min.js"></script>
+    <script src="libs/pose-detection.min.js"></script>
+
+    <!-- IndexedDB Storage Logic -->
+    <script src="js/storage-idb.js"></script>
+
+    <style>
+        :root {
+            --primary-red: #E60012;
+            --primary-gold: #FFD700;
+            --bg-gradient: linear-gradient(135deg, #E60012 0%, #FF6B00 25%, #FFD700 50%, #FF6B00 75%, #E60012 100%);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(230, 0, 18, 0.8);
+            --text-glow: 0 0 20px rgba(255, 215, 0, 1);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: #000000;
+            color: white;
+            overflow: hidden;
+            touch-action: none;
+            height: 100vh;
+        }
+
+        #debugger {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #00ff00;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 999;
+            width: 220px;
+            border: 1px solid #333;
+            pointer-events: none;
+            display: none;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+            box-sizing: border-box;
+        }
+
+        /* 摄像头区域 */
+        .camera-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 3px solid var(--primary-gold);
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6), 0 0 80px rgba(230, 0, 18, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        video,
+        canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        /* 右侧面板 */
+        .ui-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: rgba(230, 0, 18, 0.4);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid rgba(255, 215, 0, 0.6);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 215, 0, 0.1);
+        }
+
+        .stat-val {
+            font-size: 36px;
+            font-weight: 900;
+            color: #FFFFFF;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8),
+                         0 0 20px rgba(255, 215, 0, 0.6),
+                         0 3px 8px rgba(0, 0, 0, 0.8);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 1px;
+        }
+
+        .stat-lbl {
+            font-size: 13px;
+            color: #FFFFFF;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 5px;
+            font-weight: 700;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8),
+                         0 0 8px rgba(230, 0, 18, 0.5);
+        }
+
+        /* 进度条 */
+        .progress-box {
+            margin-top: 5px;
+        }
+
+        .progress-track {
+            height: 28px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.6),
+                        0 0 15px rgba(255, 215, 0, 0.3);
+            border: 2px solid rgba(255, 215, 0, 0.4);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #E60012, #FFD700, #E60012);
+            width: 0%;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg,
+                    rgba(255, 255, 255, 0.2) 25%,
+                    transparent 25%,
+                    transparent 50%,
+                    rgba(255, 255, 255, 0.2) 50%,
+                    rgba(255, 255, 255, 0.2) 75%,
+                    transparent 75%,
+                    transparent);
+            background-size: 20px 20px;
+            animation: moveStripe 1s linear infinite;
+        }
+
+        @keyframes moveStripe {
+            0% {
+                background-position: 0 0;
+            }
+
+            100% {
+                background-position: 20px 0;
+            }
+        }
+
+        /* 速度线特效 */
+        #speed-lines {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, transparent 50%, rgba(255, 255, 255, 0.5) 100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 500;
+            transition: opacity 0.5s;
+            mix-blend-mode: overlay;
+        }
+
+        #speed-lines.active {
+            opacity: 1;
+            animation: pulse-zoom 0.2s infinite;
+        }
+
+        @keyframes pulse-zoom {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* 快照闪光 */
+        #flash {
+            position: absolute;
+            inset: 0;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1000;
+            transition: opacity 0.1s;
+        }
+
+        /* 挑战弹窗 */
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: linear-gradient(135deg, rgba(230, 0, 18, 0.98) 0%, rgba(200, 0, 0, 0.98) 100%);
+            padding: 30px;
+            border-radius: 25px;
+            text-align: center;
+            border: 5px solid var(--primary-gold);
+            box-shadow: 0 0 80px rgba(255, 215, 0, 0.8), 0 0 120px rgba(230, 0, 18, 0.5);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            width: 80%;
+            max-width: 360px;
+        }
+
+        .modal.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+
+        .timer-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin: 20px auto;
+        }
+
+        .timer-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .timer-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.2);
+            stroke-width: 10;
+        }
+
+        .timer-progress {
+            fill: none;
+            stroke: #00E676;
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 440;
+            /* 2 * PI * 70 */
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        /* Success State */
+        .timer-progress.success {
+            stroke: #FFD700;
+            filter: drop-shadow(0 0 10px #FFD700);
+        }
+
+        .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 遮罩层 */
+        #overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1a0a0a 0%, #2d1414 50%, #1a0a0a 100%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        /* 添加红包动画效果 */
+        #overlay::before {
+            content: '🧧';
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            font-size: 60px;
+            animation: float 3s ease-in-out infinite;
+            opacity: 0.8;
+        }
+
+        #overlay::after {
+            content: '🧧';
+            position: absolute;
+            top: 15%;
+            right: 10%;
+            font-size: 60px;
+            animation: float 3s ease-in-out infinite 1.5s;
+            opacity: 0.8;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        h1.title {
+            font-size: 3.5rem;
+            background: linear-gradient(to bottom, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-color: transparent;
+            margin: 0 0 20px 0;
+            padding: 0;
+            text-shadow: none;
+            text-align: center;
+            letter-spacing: 2px;
+            filter: none;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            display: inline-block;
+            -webkit-box-shadow: none !important;
+            -moz-box-shadow: none !important;
+        }
+
+        .menu-grid {
+            display: grid;
+            gap: 15px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .btn {
+            border: none;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FFD700 0%, #E60012 100%);
+            color: white;
+            box-shadow: 0 8px 30px rgba(230, 0, 18, 0.6), 0 0 20px rgba(255, 215, 0, 0.4);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            filter: brightness(1.2);
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .guide-text {
+            color: #FFD700;
+            margin-top: 30px;
+            font-size: 15px;
+            line-height: 1.8;
+            text-align: center;
+            max-width: 500px;
+            font-weight: 600;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+        }
+
+        /* 游戏控制按钮 */
+        .game-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 500;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid rgba(255, 215, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 215, 0, 0.3);
+            border-color: #FFD700;
+            transform: scale(1.05);
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+                padding: 10px;
+                gap: 10px;
+                height: 100dvh;
+                /* use dynamic viewport height */
+            }
+
+            .camera-wrapper {
+                border-radius: 15px;
+                width: 100%;
+                height: 100%;
+            }
+
+            /* 让UI面板更紧凑 */
+            .ui-panel {
+                flex-direction: column;
+                padding: 15px;
+                gap: 10px;
+                background: rgba(0, 0, 0, 0.6);
+                /* 更深的背景以便阅读 */
+                backdrop-filter: blur(10px);
+            }
+
+            .stat-group {
+                grid-template-columns: repeat(4, 1fr);
+                /* 一行显示所有数据 */
+                gap: 8px;
+            }
+
+            .stat-card {
+                padding: 8px 5px;
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+            .stat-val {
+                font-size: 18px;
+                /* 缩小字体 */
+            }
+
+            .stat-lbl {
+                font-size: 10px;
+                transform: scale(0.9);
+            }
+
+            /* 进度条 */
+            .progress-box {
+                margin-top: 5px;
+            }
+
+            /* 调整弹窗大小 */
+            .modal {
+                width: 85%;
+            }
+
+            .modal h2 {
+                font-size: 1.5rem !important;
+            }
+
+            .modal div[id^="c-icon"] {
+                font-size: 60px !important;
+                margin: 10px 0 !important;
+            }
+
+            /* SVG图标样式 */
+            .challenge-icon-svg {
+                width: 100px;
+                height: 100px;
+                margin: 15px auto;
+                display: block;
+            }
+
+            .timer-ring {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+
+            h1.title {
+                font-size: 2rem;
+            }
+
+            /* 调整遮罩菜单 */
+            #menu-content {
+                width: 90%;
+            }
+
+            .timer-container {
+                width: 120px;
+                height: 120px;
+            }
+
+            .timer-text {
+                font-size: 40px;
+            }
+    </style>
+</head>
+
+<body>
+
+    <div id="debugger">Loading Model...</div>
+    <div id="flash"></div>
+    <div id="speed-lines"></div>
+
+    <!-- 游戏控制按钮 -->
+    <div class="game-controls" id="game-controls" style="display:none;">
+        <button class="control-btn" id="pause-btn" onclick="togglePause()">⏸️ 暂停</button>
+        <button class="control-btn" id="end-btn" onclick="endGame()">🛑 结束</button>
+    </div>
+
+    <!-- 背景音乐 -->
+    <audio id="bgm" loop autoplay>
+        <source src="game-music.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="container">
+        <div class="camera-wrapper">
+            <video id="video" playsinline></video>
+            <canvas id="output"></canvas>
+
+            <div id="challenge-modal" class="modal">
+                <h2 id="c-title" style="margin:0; color:#ffb300; font-size:1.8rem;"></h2>
+                <div id="c-icon" style="font-size:80px; margin:15px 0;"></div>
+                <p id="c-desc" style="font-size:1rem; margin:0; color:#ffccbc;"></p>
+                <div class="timer-container" id="c-timer-container">
+                    <svg class="timer-svg" viewBox="0 0 160 160">
+                        <circle class="timer-bg" cx="80" cy="80" r="70"></circle>
+                        <circle class="timer-progress" id="c-timer-bar" cx="80" cy="80" r="70"></circle>
+                    </svg>
+                    <div class="timer-text" id="c-timer">5.0</div>
+                </div>
+                <p id="c-timeout" style="font-size:0.9rem; color:#FFD700; margin:10px 0;">超时倒计时: 30秒</p>
+                <button id="c-skip-btn" onclick="skipChallenge()"
+                    style="background:#FF5252; color:white; border:none; padding:12px 30px; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer; margin-top:10px;">
+                    ⏭️ 跳过任务
+                </button>
+            </div>
+
+            <!-- Countdown Overlay -->
+            <div id="countdown-overlay"
+                style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:120px; font-weight:900; color:#FFF; text-shadow:0 0 30px #FF0000; display:none; z-index:200; pointer-events:none;">
+                3</div>
+        </div>
+
+        <div class="ui-panel">
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+                <div class="stat-group">
+                    <div class="stat-card">
+                        <div class="stat-val" id="disp-time" style="color:#FFF;">120</div>
+                        <div class="stat-lbl">⏳ 剩余时间</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="disp-cal">0</div>
+                        <div class="stat-lbl">🧧 发财红包</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-box">
+                <div
+                    style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px; color:#ffb300;">
+                    <span>TIME</span>
+                    <span id="target-dist-text">120s</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="prog-fill" style="width:100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主菜单 / 结束 遮罩 -->
+    <div id="overlay">
+        <h1 class="title">红包"颈"上添花</h1>
+        <p style="font-size:1.3rem; color:#FFFFFF; margin-top:-10px; margin-bottom:30px; font-weight:500; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);">新春放松小游戏</p>
+
+        <div id="menu-content"
+            style="text-align:center; width:100%; display:flex; flex-direction:column; align-items:center;">
+            <p style="font-size:1.1rem; color:#FFD700; margin-bottom:40px; font-weight:600; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);">
+                转动头部和肩膀去接红包 · 缓解疲劳 · 好运连连
+            </p>
+
+            <div class="menu-grid" id="menu-buttons">
+                <button class="btn btn-primary" id="btn-start" onclick="init()">🚀 开始挑战</button>
+            </div>
+
+            <div id="menu-best" style="margin-top:25px; width:100%; max-width:300px; display:none;">
+                <p style="color:#FFD700; font-size:14px; margin-bottom:8px; font-weight:600;">🏆 个人最佳 Top 3</p>
+                <div id="menu-best-list" style="color:#fff; font-size:14px; line-height:2;"></div>
+            </div>
+
+            <p id="loading-text" style="margin-top:30px; color:#aaa; font-size:14px; display:none;">
+                <span class="spinner">⏳</span> 正在预热AI视觉引擎...
+            </p>
+        </div>
+
+        <div id="result-content"
+            style="display:none; text-align:center; width:100%; flex-direction:column; align-items:center;">
+            <div style="font-size:80px; margin-bottom:20px;">🎉</div>
+            <div id="new-record-badge" style="display:none; color:#FF5252; font-size:1.2rem; font-weight:bold; margin-bottom:10px; text-shadow: 0 0 15px rgba(255,82,82,0.8);">🎖️ 新纪录!</div>
+            <h2 style="color:#FFD700; font-size:2.5rem; margin:0; text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);">挑战成功!</h2>
+            <p style="font-size:1.5rem; color:#FFD700; margin:20px 0; font-weight:700; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);">
+                最终得分: <span id="res-time" style="color:#FFFFFF; font-weight:bold; text-shadow: 0 0 15px rgba(255, 215, 0, 1);">0</span> 分
+            </p>
+
+            <div id="result-best" style="margin-bottom:20px; width:100%; max-width:300px;">
+                <p style="color:#FFD700; font-size:14px; margin-bottom:8px; font-weight:600;">🏆 个人最佳 Top 3</p>
+                <div id="result-best-list" style="color:#fff; font-size:14px; line-height:2;"></div>
+            </div>
+
+            <div class="menu-grid">
+                <button class="btn btn-primary" onclick="restartGame()">🔄 再玩一次</button>
+                <button class="btn btn-secondary" id="btn-view-photos" style="display:none;" onclick="viewPhotos()">📸 查看照片</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { ItemSystem } from './js/game/ItemSystem.js';
+        import { ParticleSystem } from './js/game/ParticleSystem.js';
+        import { SoundSystem } from './js/game/SoundSystem.js';
+
+        window.ItemSystem = ItemSystem;
+        window.ParticleSystem = ParticleSystem;
+        window.SoundSystem = SoundSystem;
+    </script>
+
+    <script>
+        // --- 1. 游戏配置 ---
+        const CONFIG = {
+            gameDuration: 60, // 游戏时长 60秒 (1分钟)
+            thresholds: [10, 25, 40, 55], // 触发挑战的时间点（秒）- 共4次任务，间隔约15秒
+            holdTime: 3000, // 保持姿势 3000ms (3秒)
+            packetSpawnRate: 1500, // 生成间隔
+            packetSpeed: 0.009 // 基础速度（从0.006加快到0.009，提升50%）
+        };
+
+        // 姿势定义 - 春节喜庆动作
+        const CHALLENGES = [
+            {
+                id: 'raise_left_hand',
+                name: '🎊 左手招财',
+                icon: 'icons/raise_left_hand.svg',
+                desc: '举起左手，放松左肩，维持3秒',
+                check: (kp) => {
+                    // 左手必须明显高于左肩
+                    const leftUp = kp.lw.y < kp.ls.y - 0.05;
+                    return leftUp;
+                }
+            },
+            {
+                id: 'raise_right_hand',
+                name: '🎊 右手招财',
+                icon: 'icons/raise_right_hand.svg',
+                desc: '举起右手，放松右肩，维持3秒',
+                check: (kp) => {
+                    // 右手必须明显高于右肩
+                    const rightUp = kp.rw.y < kp.rs.y - 0.05;
+                    return rightUp;
+                }
+            },
+            {
+                id: 'hands_up',
+                name: '🎆 步步高升',
+                icon: 'icons/hands_up.svg',
+                desc: '双手高举过头，拉伸肩颈，维持3秒',
+                check: (kp) => {
+                    // 双手都必须明显高于肩膀
+                    return kp.lw.y < kp.ls.y - 0.08 && kp.rw.y < kp.rs.y - 0.08;
+                }
+            },
+            {
+                id: 'hands_on_neck',
+                name: '🎁 福气临门',
+                icon: 'icons/hands_on_neck.svg',
+                desc: '双手放在脖子后面，放松颈部，维持3秒',
+                check: (kp) => {
+                    // 双手都在头部/颈部高度（高于肩膀）
+                    const handsUp = kp.lw.y < kp.ls.y && kp.rw.y < kp.rs.y;
+                    // 双手靠近头部中心
+                    const noseX = kp.nose.x;
+                    const leftNearHead = Math.abs(kp.lw.x - noseX) < 0.25;
+                    const rightNearHead = Math.abs(kp.rw.x - noseX) < 0.25;
+                    return handsUp && leftNearHead && rightNearHead;
+                }
+            },
+            {
+                id: 'look_up',
+                name: '🌟 抬头看烟花',
+                icon: 'icons/look_up.svg',
+                desc: '抬头朝天看，放松颈部，维持3秒',
+                check: (kp) => {
+                    // 检测鼻子是否明显高于肩膀（抬头状态）
+                    const noseY = kp.nose.y;
+                    const shoulderY = (kp.ls.y + kp.rs.y) / 2;
+
+                    // 鼻子明显高于肩膀说明在抬头
+                    return noseY < shoulderY - 0.1;
+                }
+            }
+        ];
+
+        // --- 2. 状态 ---
+        let state = {
+            active: false,
+            paused: false,
+            dist: 0,
+            score: 0,
+            startTime: 0,
+            pausedTime: 0,
+            lastWristY: { l: 0, r: 0 },
+            lastSwingTime: 0,
+            passedThresholds: [],
+            challenge: null,
+            challengeStart: null,
+            challengeStartTime: null,
+            challengeTimeout: null,
+            currentRunMoments: [],
+            itemSystem: null,
+            particleSystem: null,
+            isStunned: false,
+            stunEndTime: 0,
+            timeLeft: 180
+        };
+
+        let detector, video, canvas, ctx;
+        let isModelLoaded = false;
+        let preloadPromise = null; // 预加载 Promise
+
+        // --- 3. 页面打开时预加载摄像头+模型 ---
+        function startPreload() {
+            const loadingText = document.getElementById('loading-text');
+            const btnStart = document.getElementById('btn-start');
+            loadingText.style.display = 'block';
+            btnStart.disabled = true;
+            btnStart.style.opacity = '0.5';
+
+            preloadPromise = (async () => {
+                try {
+                    console.log('预加载: 初始化摄像头...');
+                    loadingText.innerHTML = '<span class="spinner">⏳</span> 正在连接摄像头...';
+                    await setupCamera();
+                    console.log('预加载: 摄像头就绪');
+
+                    console.log('预加载: 加载AI模型(本地)...');
+                    loadingText.innerHTML = '<span class="spinner">⏳</span> 正在加载AI模型...';
+                    const modelConfig = {
+                        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+                        enableSmoothing: true,
+                        modelUrl: 'models/model.json'
+                    };
+                    detector = await poseDetection.createDetector(
+                        poseDetection.SupportedModels.MoveNet, modelConfig
+                    );
+                    console.log('预加载: 模型加载完成');
+
+                    isModelLoaded = true;
+                    loadingText.innerHTML = '✅ 准备就绪，点击开始!';
+                    btnStart.disabled = false;
+                    btnStart.style.opacity = '1';
+                } catch (err) {
+                    console.error('预加载失败:', err);
+                    loadingText.innerHTML = '⚠️ 预加载失败，点击开始重试';
+                    btnStart.disabled = false;
+                    btnStart.style.opacity = '1';
+                    preloadPromise = null; // 允许重试
+                }
+            })();
+        }
+
+        // --- 初始化（用户点击开始） ---
+        async function init() {
+            document.getElementById('menu-buttons').style.display = 'none';
+            document.getElementById('loading-text').style.display = 'block';
+
+            try {
+                if (!isModelLoaded) {
+                    // 预加载未完成或失败，重新启动
+                    if (!preloadPromise) startPreload();
+                    await preloadPromise;
+                }
+
+                if (!isModelLoaded) {
+                    throw new Error('模型加载失败');
+                }
+
+                document.getElementById('loading-text').style.display = 'none';
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('debugger').style.display = 'block';
+
+                startGame();
+            } catch (err) {
+                console.error('详细错误:', err);
+                alert('初始化失败: ' + err.message + '\n\n请检查:\n1. 是否允许摄像头权限\n2. 是否通过本地服务器访问');
+
+                document.getElementById('loading-text').style.display = 'none';
+                document.getElementById('menu-buttons').style.display = 'grid';
+                const btnStart = document.getElementById('btn-start');
+                if (btnStart) btnStart.disabled = false;
+            }
+        }
+
+        async function setupCamera() {
+            video = document.getElementById('video');
+            canvas = document.getElementById('output');
+            ctx = canvas.getContext('2d');
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'user' },
+                audio: false
+            });
+            video.srcObject = stream;
+
+            return new Promise(resolve => {
+                video.onloadedmetadata = () => {
+                    video.play();
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    resolve();
+                };
+            });
+        }
+
+        function startGame() {
+            state = {
+                active: true,
+                dist: 0,
+                score: 0,
+                startTime: Date.now(),
+                lastWristY: { l: 0, r: 0 },
+                lastSwingTime: 0,
+                passedThresholds: [],
+                challenge: null,
+                challengeStart: null,
+                challengeStartTime: null,
+                challengeTimeout: null,
+                currentRunMoments: [],
+                itemSystem: new window.ItemSystem({
+                    spawnRate: CONFIG.packetSpawnRate,
+                    baseSpeed: CONFIG.packetSpeed
+                }),
+                particleSystem: new window.ParticleSystem(),
+                soundSystem: new window.SoundSystem(),
+                isStunned: false,
+                stunEndTime: 0,
+                timeLeft: CONFIG.gameDuration,
+                preparing: false
+            };
+
+            // 绑定回调
+            state.itemSystem.onCatch = onPacketCaught;
+            state.itemSystem.onHit = onBombHit;
+
+            // 显示游戏控制按钮
+            document.getElementById('game-controls').style.display = 'flex';
+
+            // 播放背景音乐
+            const bgm = document.getElementById('bgm');
+            if (bgm) {
+                bgm.volume = 0.3; // 设置音量为30%
+                bgm.play().catch(err => console.log('背景音乐播放失败:', err));
+            }
+
+            updateUI();
+            renderLoop();
+        }
+
+        // --- 4. 循环 ---
+        async function renderLoop() {
+            if (!state.active) return;
+            if (state.paused) {
+                requestAnimationFrame(renderLoop);
+                return;
+            }
+
+            const poses = await detector.estimatePoses(video);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // 清空
+            // 绘制半透明蒙版以突出挑战？不，保持清晰
+
+            // 绘制物品和粒子（无论是否有人）
+            state.itemSystem.draw(ctx, canvas.width, canvas.height);
+            state.particleSystem.draw(ctx, canvas.width, canvas.height);
+
+            if (poses.length > 0) {
+                const kp = normalizeKeypoints(poses[0].keypoints);
+                drawSkeleton(poses[0].keypoints); // 绘制骨架
+
+                if (kp.nose.score > 0.3) {
+                    gameLogic(kp);
+                    updateDebug(kp);
+                }
+            } else {
+                // 没有人时也要更新物品系统（让红包继续掉落）
+                const now = Date.now();
+                state.itemSystem.update(null, now, state.timeLeft);
+                state.particleSystem.update();
+
+                // 继续倒计时
+                const elapsed = (now - state.startTime) / 1000;
+                state.timeLeft = Math.max(0, CONFIG.gameDuration - elapsed);
+                if (state.timeLeft <= 0) {
+                    winGame();
+                    return;
+                }
+            }
+
+            updateUI();
+            requestAnimationFrame(renderLoop);
+        }
+
+        // --- 5. 逻辑 ---
+        function normalizeKeypoints(raw) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const map = {};
+            raw.forEach(p => {
+                map[p.name] = { x: p.x / w, y: p.y / h, score: p.score };
+            });
+            // 别名
+            map.lw = map['left_wrist'];
+            map.rw = map['right_wrist'];
+            map.ls = map['left_shoulder'];
+            map.rs = map['right_shoulder'];
+            map.la = map['left_ankle'];
+            map.ra = map['right_ankle'];
+            map.lk = map['left_knee'];
+            map.rk = map['right_knee'];
+            return map;
+        }
+
+        function gameLogic(kp) {
+            const now = Date.now();
+
+            // 时间倒计时
+            const elapsed = (now - state.startTime) / 1000;
+            state.timeLeft = Math.max(0, CONFIG.gameDuration - elapsed);
+
+            if (state.timeLeft <= 0) {
+                winGame();
+                return;
+            }
+
+            // 1. Priority: Preparing -> Challenge -> Stunned -> Normal
+
+            if (state.preparing) {
+                // Completely freeze items and running
+                // Only allow particles (for countdown effects if any)
+                state.particleSystem.update();
+                return;
+            }
+
+            if (state.challenge) {
+                // In challenge: no items, no running, just pose check
+                state.particleSystem.update();
+                processChallenge(kp);
+                return;
+            }
+
+            // 2. Normal Game Loop
+
+            state.itemSystem.update(kp, now, state.timeLeft);
+            state.particleSystem.update();
+
+            // Stunned check
+            if (state.isStunned) {
+                if (now > state.stunEndTime) {
+                    state.isStunned = false;
+                } else {
+                    return;
+                }
+            }
+
+            // 跑步检测: 手腕垂直摆动
+            const deltaL = Math.abs(kp.lw.y - state.lastWristY.l);
+            const deltaR = Math.abs(kp.rw.y - state.lastWristY.r);
+
+            // 稍微调高阈值防止抖动误判
+            if ((deltaL > 0.02 || deltaR > 0.02) && (now - state.lastSwingTime > 150)) {
+                state.dist += 4; // 加速跑!
+                // 分数只通过接红包获得
+                state.lastSwingTime = now;
+            }
+            state.lastWristY = { l: kp.lw.y, r: kp.rw.y };
+
+            // 触发挑战 (基于时间)
+            const elapsedSeconds = Math.floor((CONFIG.gameDuration - state.timeLeft));
+            CONFIG.thresholds.forEach(t => {
+                if (elapsedSeconds >= t && !state.passedThresholds.includes(t)) {
+                    state.passedThresholds.push(t);
+                    startChallenge();
+                }
+            });
+
+            // 胜利判定移到了上面（时间结束）
+        }
+
+        // --- 挑战系统 ---
+        function startChallenge() {
+            const pool = CHALLENGES;
+            let selected;
+
+            // 从所有任务中完全随机选择
+            selected = pool[Math.floor(Math.random() * pool.length)];
+
+            // 1. Enter Prep Mode
+            state.preparing = true;
+            state.itemSystem.items = []; // Clear current items
+
+            // 2. Show Modal Info (Hide Timer initially)
+            const m = document.getElementById('challenge-modal');
+            document.getElementById('c-title').innerText = selected.name;
+
+            // 显示SVG图标
+            const iconEl = document.getElementById('c-icon');
+            if (selected.icon.endsWith('.svg')) {
+                iconEl.innerHTML = `<img src="${selected.icon}" class="challenge-icon-svg" alt="${selected.name}">`;
+            } else {
+                iconEl.innerText = selected.icon;
+            }
+
+            document.getElementById('c-desc').innerText = selected.desc;
+            document.getElementById('c-timer-container').style.display = 'none';
+            m.classList.add('active');
+
+            // 3. Countdown Sequence
+            let count = 3;
+            const overlay = document.getElementById('countdown-overlay');
+
+            const runCountdown = () => {
+                state.soundSystem.play('tick');
+                overlay.innerText = count;
+                overlay.style.display = 'block';
+                // Trigger reflow for animation if needed, or CSS animation handle it
+
+                if (count <= 0) {
+                    // START
+                    overlay.style.display = 'none';
+                    state.preparing = false;
+                    state.challenge = selected;
+                    state.challengeStart = null;
+                    state.challengeStartTime = Date.now(); // 记录挑战开始时间
+
+                    const tContainer = document.getElementById('c-timer-container');
+                    tContainer.style.display = 'block';
+                    document.getElementById('c-timer').innerText = "3.0";
+
+                    // Reset Circle
+                    const circle = document.getElementById('c-timer-bar');
+                    if (circle) {
+                        circle.style.strokeDasharray = 440;
+                        circle.style.strokeDashoffset = 0;
+                        circle.classList.remove('success');
+                    }
+
+                    // 设置30秒超时自动跳过
+                    state.challengeTimeout = setTimeout(() => {
+                        if (state.challenge) {
+                            skipChallenge();
+                            showToast('⏰ 任务超时，已自动跳过');
+                        }
+                    }, 30000);
+
+                    state.soundSystem.play('collect'); // Go sound
+                } else {
+                    count--;
+                    setTimeout(runCountdown, 1000);
+                }
+            };
+
+            runCountdown();
+        }
+
+        function processChallenge(kp) {
+            const challenge = state.challenge;
+
+            // 计时逻辑
+            const passed = state.challenge.check(kp);
+            const timerEl = document.getElementById('c-timer');
+            const timerBar = document.getElementById('c-timer-bar');
+            const totalCircumference = 440; // 2 * PI * 70
+
+            // 更新超时倒计时显示
+            if (state.challengeStartTime) {
+                const elapsed = (Date.now() - state.challengeStartTime) / 1000;
+                const timeoutRemain = Math.max(0, 30 - elapsed);
+                const timeoutEl = document.getElementById('c-timeout');
+                if (timeoutEl) {
+                    timeoutEl.innerText = `超时倒计时: ${Math.ceil(timeoutRemain)}秒`;
+                    if (timeoutRemain < 10) {
+                        timeoutEl.style.color = '#FF5252'; // 红色警告
+                    }
+                }
+            }
+
+            if (passed) {
+                if (!state.challengeStart) state.challengeStart = Date.now();
+                const held = Date.now() - state.challengeStart;
+                const remain = Math.max(0, (CONFIG.holdTime - held) / 1000);
+
+                // Update Text
+                timerEl.innerText = remain.toFixed(1);
+                timerEl.style.color = '#00E676'; // Green text
+
+                // Update Ring Progress
+                const progress = held / CONFIG.holdTime; // 0 to 1
+                const offset = totalCircumference * progress;
+                timerBar.style.strokeDashoffset = offset;
+
+                timerBar.classList.add('success'); // Optional: change color
+
+                if (held >= CONFIG.holdTime) {
+                    completeChallenge();
+                }
+            } else {
+                state.challengeStart = null;
+                timerEl.innerText = "3.0";
+                timerEl.style.color = 'white';
+
+                // Reset Ring
+                timerBar.style.strokeDashoffset = 0;
+                timerBar.classList.remove('success');
+            }
+        }
+
+        function completeChallenge() {
+            // 1. 清除超时计时器（重要！防止影响下一个任务）
+            if (state.challengeTimeout) {
+                clearTimeout(state.challengeTimeout);
+                state.challengeTimeout = null;
+            }
+
+            // 2. 抓拍
+            captureSnapshot();
+
+            // 3. 奖励
+            state.dist += 50;
+            state.score += 1000; // 挑战成功 +1000分
+            const cName = state.challenge.name;
+
+            // 4. UI重置
+            state.challenge = null;
+            state.challengeStart = null;
+            state.challengeStartTime = null;
+            document.getElementById('challenge-modal').classList.remove('active');
+
+            // 5. 提示
+            state.soundSystem.play('complete');
+            showToast(`📸 完美! +1000分`);
+        }
+
+        // --- 暂停/恢复游戏 ---
+        window.togglePause = function() {
+            if (!state.active) return;
+
+            state.paused = !state.paused;
+            const pauseBtn = document.getElementById('pause-btn');
+            const bgm = document.getElementById('bgm');
+
+            if (state.paused) {
+                pauseBtn.innerText = '▶️ 继续';
+                if (bgm) bgm.pause();
+                state.pausedTime = Date.now();
+            } else {
+                pauseBtn.innerText = '⏸️ 暂停';
+                if (bgm) bgm.play().catch(err => console.log('音乐播放失败:', err));
+                // 调整开始时间以补偿暂停时间
+                const pauseDuration = Date.now() - state.pausedTime;
+                state.startTime += pauseDuration;
+                if (state.challengeStartTime) {
+                    state.challengeStartTime += pauseDuration;
+                }
+            }
+        }
+
+        // --- 结束游戏 ---
+        window.endGame = function() {
+            if (!state.active) return;
+
+            if (confirm('确定要结束游戏吗？')) {
+                winGame();
+            }
+        }
+
+        // --- 跳过任务 ---
+        window.skipChallenge = function() {
+            if (!state.challenge) return;
+
+            // 清除超时计时器
+            if (state.challengeTimeout) {
+                clearTimeout(state.challengeTimeout);
+                state.challengeTimeout = null;
+            }
+
+            // 重置所有挑战相关状态
+            state.challenge = null;
+            state.challengeStart = null;
+            state.challengeStartTime = null;
+            state.preparing = false;
+
+            // 隐藏弹窗
+            document.getElementById('challenge-modal').classList.remove('active');
+
+            // 提示
+            showToast('⏭️ 已跳过任务');
+        }
+
+        // --- 重新开始游戏（回到主界面）---
+        window.restartGame = function() {
+            // 直接刷新页面，最简单可靠
+            location.reload();
+        }
+
+        // --- 抓拍 ---
+        function captureSnapshot() {
+            // 闪光特效
+            const flash = document.getElementById('flash');
+            flash.style.opacity = 0.8;
+            setTimeout(() => flash.style.opacity = 0, 100);
+
+            // 截图
+            // 创建一个临时Canvas把Video和当前的骨架(Output)合成？
+            // 或者只截Video更真实？User wants "photos" usually means them.
+            // Let's draw video then overlay text/icon.
+
+            const snapCanvas = document.createElement('canvas');
+            // 缩小截图尺寸以减少存储空间（最大宽度240px，确保能保存）
+            const maxWidth = 960;
+            const scale = Math.min(1, maxWidth / video.videoWidth);
+            snapCanvas.width = video.videoWidth * scale;
+            snapCanvas.height = video.videoHeight * scale;
+            const sCtx = snapCanvas.getContext('2d');
+
+            // 绘制视频 (需要水平翻转以匹配镜像显示，或者就存镜像后的)
+            // 这里的 video css transform scaleX(-1) 只是显示的。绘制到Canvas是原始的。
+            // 为了所见即所得，我们绘制时也要翻转。
+            sCtx.save();
+            sCtx.scale(-1, 1);
+            sCtx.drawImage(video, -snapCanvas.width, 0, snapCanvas.width, snapCanvas.height);
+            sCtx.restore();
+
+            // 绘制当前挑战的图标做水印
+            if (state.challenge) {
+                sCtx.font = `${Math.floor(80 * scale)}px sans-serif`;
+                sCtx.fillText(state.challenge.icon, 20 * scale, 100 * scale);
+                sCtx.fillStyle = "#FFD700";
+                sCtx.font = `bold ${Math.floor(30 * scale)}px sans-serif`;
+                sCtx.fillText(state.challenge.name, 20 * scale, 140 * scale);
+            }
+
+            // 压缩并保存（使用较低的质量，确保能保存）
+            const base64 = AppStorage.compressCanvas(snapCanvas, 0.8);
+
+            // 调试：显示照片大小
+            const photoSizeKB = (base64.length / 1024).toFixed(2);
+            console.log(`📸 照片大小: ${photoSizeKB} KB`);
+
+            // 创建照片对象
+            const moment = {
+                id: Date.now() + Math.random().toString().slice(2, 6),
+                timestamp: new Date().toISOString(),
+                challengeName: state.challenge ? state.challenge.name : '自由时刻',
+                challengeIcon: state.challenge ? state.challenge.icon : '🏃',
+                imageData: base64
+            };
+
+            // 保存到当前游戏的临时数组
+            state.currentRunMoments.push(moment);
+        }
+
+        // --- 结算 ---
+        async function winGame() {
+            state.active = false;
+
+            // 停止背景音乐
+            const bgm = document.getElementById('bgm');
+            if (bgm) {
+                bgm.pause();
+                bgm.currentTime = 0;
+            }
+
+            // 隐藏游戏控制按钮
+            document.getElementById('game-controls').style.display = 'none';
+
+            const finalScore = state.score;
+
+            // 保存成绩
+            const moments = state.currentRunMoments;
+            let moment1 = null;
+            let moment2 = null;
+            if (moments.length > 0) moment1 = moments[moments.length - 1];
+            if (moments.length > 1) moment2 = moments[moments.length - 2];
+
+            try {
+                await AppStorage.saveScore({
+                    score: finalScore,
+                    date: new Date().toLocaleString(),
+                    snapshotCount: moments.length,
+                    moment1: moment1,
+                    moment2: moment2
+                });
+            } catch (err) {
+                console.error('保存分数失败:', err);
+            }
+
+            // 显示结果界面
+            const ov = document.getElementById('overlay');
+            ov.style.display = 'flex';
+            document.getElementById('menu-content').style.display = 'none';
+            document.getElementById('result-content').style.display = 'flex';
+            document.getElementById('res-time').innerText = finalScore;
+
+            // 加载 Top 3 并判断新纪录
+            await loadBestScores(finalScore);
+
+            // 控制"查看照片"按钮显隐
+            const photosBtn = document.getElementById('btn-view-photos');
+            if (moments.length > 0) {
+                photosBtn.style.display = 'flex';
+            } else {
+                photosBtn.style.display = 'none';
+            }
+        }
+
+        // --- 辅助 ---
+        function updateUI() {
+            if (!state.active) return;
+
+            // 倒计时显示
+            const t = Math.ceil(state.timeLeft);
+            const m = String(Math.floor(t / 60)).padStart(2, '0');
+            const s = String(t % 60).padStart(2, '0');
+
+            const timeEl = document.getElementById('disp-time');
+            timeEl.innerText = `${m}:${s}`;
+
+            // 时间少于10秒变红
+            if (t <= 10) timeEl.style.color = '#FF5252';
+            else timeEl.style.color = '#FFF';
+
+            document.getElementById('disp-cal').innerText = state.score; // 显示分数
+
+            const pct = (state.timeLeft / CONFIG.gameDuration) * 100;
+            document.getElementById('prog-fill').style.width = pct + "%";
+        }
+
+        function drawSkeleton(keypoints) {
+            ctx.fillStyle = '#00E676';
+            ctx.strokeStyle = '#00E676';
+            ctx.lineWidth = 2;
+
+            // 绘制点
+            keypoints.forEach(p => {
+                if (p.score > 0.3) {
+                    ctx.beginPath();
+                    // 被炸晕时身体变红
+                    ctx.fillStyle = state.isStunned ? '#FF0000' : '#00E676';
+                    ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function onBombHit(item) {
+            // 惩罚: 扣分 + 眩晕
+            state.score = Math.max(0, state.score - 500);
+            state.isStunned = true;
+            state.stunEndTime = Date.now() + 2000; // 晕2秒
+
+            // 特效
+            state.soundSystem.play('bomb');
+            state.particleSystem.emitText(item.x, item.y, "-500");
+            state.particleSystem.emit(item.x, item.y, '#FF0000', 30);
+
+            // 屏幕震动效果 (简单版)
+            document.body.style.transform = "translate(5px, 5px)";
+            setTimeout(() => document.body.style.transform = "none", 100);
+        }
+
+        function onPacketCaught(d) {
+            let bonus = 100;
+            let msg = '🧧 +100分';
+
+            let color = '#FFD700';
+
+            if (d.type === 'gold') {
+                bonus = 500;
+                msg = '✨ +500分';
+                color = '#FFFF00';
+            } else if (d.type === 'lion') {
+                bonus = 2000;
+                msg = '🦁 舞狮觉醒! +2000分';
+                color = '#FF5252';
+                // 极速模式：里程增加加快 (持续5秒)
+                activateSpeedBoost();
+                state.soundSystem.play('lion');
+            } else {
+                state.soundSystem.play(d.type === 'normal' ? 'collect' : 'gold');
+            }
+
+            state.score += bonus;
+            // showToast(msg); // 用粒子文字替代
+
+            state.particleSystem.emitText(d.x, d.y, `+${bonus}`, color);
+            state.particleSystem.emit(d.x, d.y, color, d.type === 'lion' ? 50 : 20);
+        }
+
+        let boostTimer = null;
+        function activateSpeedBoost() {
+            // 简单实现: 让跑步判定更灵敏，或者每帧自动加分
+            if (boostTimer) clearTimeout(boostTimer);
+
+            CONFIG.packetSpawnRate = 600; // 疯狂掉落
+            state.itemSystem.config.spawnRate = 600; // Update config
+            document.getElementById('speed-lines').classList.add('active'); // 视觉线特效
+
+            boostTimer = setTimeout(() => {
+                CONFIG.packetSpawnRate = 1500; // 恢复
+                state.itemSystem.config.spawnRate = 1500;
+                document.getElementById('speed-lines').classList.remove('active');
+                boostTimer = null;
+            }, 5000);
+        }
+
+        function updateDebug(kp) {
+            const dbg = document.getElementById('debugger');
+            // dbg.innerHTML = `Nose Y: ${kp.nose.y.toFixed(2)}`; 
+            // 调试模式可关
+        }
+
+        // --- 个人最佳 Top 3 ---
+        async function loadBestScores(currentScore) {
+            try {
+                const scores = await AppStorage.getScores();
+                const top3 = scores.slice(0, 3);
+
+                // 判断是否新纪录（当前分数是历史最高）
+                const badge = document.getElementById('new-record-badge');
+                if (badge && top3.length > 0 && currentScore >= parseFloat(top3[0].score)) {
+                    badge.style.display = 'block';
+                } else if (badge) {
+                    badge.style.display = 'none';
+                }
+
+                // 渲染到结束界面
+                renderTop3('result-best-list', top3, currentScore);
+            } catch (e) {
+                console.error('加载最佳成绩失败:', e);
+            }
+        }
+
+        function renderTop3(containerId, top3, highlightScore) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (top3.length === 0) {
+                container.innerHTML = '<span style="color:#aaa;">暂无记录</span>';
+                return;
+            }
+
+            const medals = ['🥇', '🥈', '🥉'];
+            container.innerHTML = top3.map((s, i) => {
+                const isHighlight = highlightScore !== undefined && parseFloat(s.score) === highlightScore;
+                const style = isHighlight ? 'color:#FFD700; font-weight:bold;' : '';
+                return `<div style="${style}">${medals[i]} ${s.score} 分 <span style="color:#aaa; font-size:12px;">${s.date || ''}</span></div>`;
+            }).join('');
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.innerText = msg;
+            toast.style.cssText = `
+                position: fixed;
+                top: 20%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0,0,0,0.8);
+                color: #FFD700;
+                padding: 15px 30px;
+                border-radius: 50px;
+                font-size: 20px;
+                font-weight: bold;
+                z-index: 2000;
+                animation: fadeUp 1.5s forwards;
+            `;
+            document.body.appendChild(toast);
+
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @keyframes fadeUp {
+                    0% { opacity:0; transform:translate(-50%, -20%); }
+                    20% { opacity:1; transform:translate(-50%, -50%); }
+                    80% { opacity:1; transform:translate(-50%, -50%); }
+                    100% { opacity:0; transform:translate(-50%, -80%); }
+                }
+            `;
+            document.head.appendChild(style);
+
+            setTimeout(() => {
+                toast.remove();
+                style.remove();
+            }, 1500);
+        }
+
+        // --- 查看本局照片 ---
+        window.viewPhotos = function() {
+            const moments = state.currentRunMoments;
+            if (!moments || moments.length === 0) return;
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position:fixed; inset:0; background:rgba(0,0,0,0.95);
+                z-index:3000; display:flex; flex-direction:column;
+                align-items:center; justify-content:center; padding:20px;
+            `;
+
+            const grid = document.createElement('div');
+            grid.style.cssText = `
+                display:flex; flex-wrap:wrap; gap:10px;
+                justify-content:center; max-height:80vh;
+                overflow-y:auto; padding:10px;
+            `;
+
+            moments.forEach(m => {
+                const img = document.createElement('img');
+                img.src = m.imageData;
+                img.style.cssText = `
+                    width:280px; border-radius:10px;
+                    border:2px solid #FFD700; cursor:pointer;
+                `;
+                img.onclick = () => {
+                    AppStorage.downloadImage(m.imageData,
+                        'snapshot_' + m.timestamp + '.jpg');
+                };
+                grid.appendChild(img);
+            });
+
+            const closeBtn = document.createElement('button');
+            closeBtn.innerText = '关闭';
+            closeBtn.style.cssText = `
+                margin-top:15px; padding:10px 30px; border:none;
+                background:#FFD700; color:#000; font-weight:bold;
+                border-radius:25px; font-size:16px; cursor:pointer;
+            `;
+            closeBtn.onclick = () => overlay.remove();
+
+            overlay.appendChild(grid);
+            overlay.appendChild(closeBtn);
+            document.body.appendChild(overlay);
+        }
+
+        // --- 页面加载：预加载 + 显示历史 Top 3 ---
+        (async function() {
+            // 启动预加载
+            startPreload();
+
+            // 显示主菜单历史最佳
+            try {
+                await AppStorage.init();
+                const scores = await AppStorage.getScores();
+                const top3 = scores.slice(0, 3);
+                if (top3.length > 0) {
+                    document.getElementById('menu-best').style.display = 'block';
+                    renderTop3('menu-best-list', top3);
+                }
+            } catch (e) {
+                console.error('加载历史成绩失败:', e);
+            }
+        })();
+    </script>
+</body>
+
+</html>
