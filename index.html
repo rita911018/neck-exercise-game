@@ -5,14 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>红包"颈"上添花，新春放松小游戏</title>
-    <!-- TensorFlow.js Dependencies - 本地版本 -->
-    <script src="libs/tf-core.min.js"></script>
-    <script src="libs/tf-converter.min.js"></script>
-    <script src="libs/tf-backend-webgl.min.js"></script>
-    <script src="libs/pose-detection.min.js"></script>
+    <!-- TensorFlow.js: 延迟加载，见 loadTFScripts() -->
 
     <!-- IndexedDB Storage Logic -->
-    <script src="js/storage-idb.js"></script>
+    <script defer src="js/storage-idb.js"></script>
 
     <style>
         :root {
@@ -698,7 +694,7 @@
     </div>
 
     <!-- 背景音乐 -->
-    <audio id="bgm" loop autoplay>
+    <audio id="bgm" loop preload="none">
         <source src="game-music.mp3" type="audio/mpeg">
     </audio>
 
@@ -960,17 +956,57 @@
         let isModelLoaded = false;
         let preloadPromise = null; // 预加载 Promise
 
-        // --- 3. 页面打开时预加载摄像头+模型 ---
+        // --- 2.5 动态加载 TF.js 脚本（避免阻塞首屏渲染）---
+        let tfScriptsLoaded = false;
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = src;
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('加载失败: ' + src));
+                document.head.appendChild(s);
+            });
+        }
+        function loadTFScripts() {
+            if (tfScriptsLoaded) return Promise.resolve();
+            // tf-core 必须先加载，其余依赖 tf-core 但彼此无依赖，可并行
+            return loadScript('libs/tf-core.min.js')
+                .then(() => Promise.all([
+                    loadScript('libs/tf-converter.min.js'),
+                    loadScript('libs/tf-backend-webgl.min.js'),
+                    loadScript('libs/pose-detection.min.js')
+                ]))
+                .then(() => { tfScriptsLoaded = true; });
+        }
+
+        // --- 3. 页面打开时静默预加载 TF.js + 创建模型 ---
+        let detectorPromise = null;
         function startPreload() {
+            preloadPromise = loadTFScripts().then(() => {
+                // TF.js 就绪后立即创建 detector（不需要摄像头）
+                const modelConfig = {
+                    modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+                    enableSmoothing: true,
+                    modelUrl: 'models/model.json'
+                };
+                detectorPromise = poseDetection.createDetector(
+                    poseDetection.SupportedModels.MoveNet, modelConfig
+                );
+                return detectorPromise;
+            }).catch(err => {
+                console.error('预加载失败:', err);
+            });
+        }
+
+        // --- 初始化（用户点击开始） ---
+        async function init() {
+            document.getElementById('menu-buttons').style.display = 'none';
             const loadingText = document.getElementById('loading-text');
             const loadingMsg = document.getElementById('loading-msg');
             const loadingBar = document.getElementById('loading-bar');
             const loadingProgress = document.getElementById('loading-progress');
-            const btnStart = document.getElementById('btn-start');
             loadingText.style.display = 'block';
             loadingProgress.style.display = 'block';
-            btnStart.disabled = true;
-            btnStart.style.opacity = '0.5';
 
             function setProgress(pct, msg) {
                 loadingMsg.textContent = msg;
@@ -978,73 +1014,60 @@
             }
 
             const t0 = Date.now();
-            preloadPromise = (async () => {
-                try {
-                    setProgress(10, '⏳ 正在连接摄像头...（首次约10-20秒）');
-                    await setupCamera();
+            try {
+                if (isModelLoaded) {
+                    // 已加载过，直接开始游戏
+                    loadingText.style.display = 'none';
+                    document.getElementById('overlay').style.display = 'none';
+                    document.getElementById('debugger').style.display = 'block';
+                    startGame();
+                    return;
+                }
 
-                    setProgress(40, '⏳ 正在加载AI模型...（约5MB）');
+                // 等待 TF.js 预加载完成（通常已在后台完成）
+                if (!tfScriptsLoaded) {
+                    setProgress(5, '⏳ 正在加载AI引擎...');
+                    if (!preloadPromise) startPreload();
+                    await preloadPromise;
+                }
+
+                setProgress(20, '⏳ 正在连接摄像头...');
+                // 摄像头 和 detector（后台已在创建）并行等待
+                const cameraPromise = setupCamera();
+                if (!detectorPromise) {
                     const modelConfig = {
                         modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
                         enableSmoothing: true,
                         modelUrl: 'models/model.json'
                     };
-                    detector = await poseDetection.createDetector(
+                    detectorPromise = poseDetection.createDetector(
                         poseDetection.SupportedModels.MoveNet, modelConfig
                     );
-
-                    setProgress(80, '⏳ 正在预热引擎...马上就好');
-                    // 预热：跑一帧让 WebGL shader 编译完成
-                    await detector.estimatePoses(video);
-
-                    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-                    setProgress(100, `✅ 准备就绪（加载用时${elapsed}秒），点击开始!`);
-                    isModelLoaded = true;
-                    btnStart.disabled = false;
-                    btnStart.style.opacity = '1';
-                } catch (err) {
-                    console.error('预加载失败:', err);
-                    if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
-                        setProgress(0, '⚠️ 摄像头权限被拒绝，请点击地址栏左侧🔒图标，将摄像头权限改为"允许"后刷新页面');
-                    } else {
-                        setProgress(0, '⚠️ 预加载失败，点击开始重试');
-                    }
-                    btnStart.disabled = false;
-                    btnStart.style.opacity = '1';
-                    preloadPromise = null; // 允许重试
                 }
-            })();
-        }
+                setProgress(40, '⏳ 正在加载AI模型...');
+                const [, det] = await Promise.all([cameraPromise, detectorPromise]);
+                detector = det;
 
-        // --- 初始化（用户点击开始） ---
-        async function init() {
-            document.getElementById('menu-buttons').style.display = 'none';
-            document.getElementById('loading-text').style.display = 'block';
+                setProgress(80, '⏳ 正在预热引擎...马上就好');
+                await detector.estimatePoses(video);
 
-            try {
-                if (!isModelLoaded) {
-                    // 预加载未完成或失败，重新启动
-                    if (!preloadPromise) startPreload();
-                    await preloadPromise;
-                }
+                const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+                setProgress(100, `✅ 准备就绪（用时${elapsed}秒）`);
+                isModelLoaded = true;
 
-                if (!isModelLoaded) {
-                    throw new Error('模型加载失败');
-                }
-
-                document.getElementById('loading-text').style.display = 'none';
+                loadingText.style.display = 'none';
                 document.getElementById('overlay').style.display = 'none';
                 document.getElementById('debugger').style.display = 'block';
-
                 startGame();
             } catch (err) {
                 console.error('详细错误:', err);
-                alert('初始化失败: ' + err.message + '\n\n请检查:\n1. 是否允许摄像头权限\n2. 是否通过本地服务器访问');
-
-                document.getElementById('loading-text').style.display = 'none';
-                document.getElementById('menu-buttons').style.display = 'grid';
-                const btnStart = document.getElementById('btn-start');
-                if (btnStart) btnStart.disabled = false;
+                if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
+                    setProgress(0, '⚠️ 摄像头权限被拒绝，请点击地址栏左侧🔒图标，将摄像头权限改为"允许"后刷新页面');
+                } else {
+                    alert('初始化失败: ' + err.message + '\n\n请检查:\n1. 是否允许摄像头权限\n2. 是否通过本地服务器访问');
+                    loadingText.style.display = 'none';
+                    document.getElementById('menu-buttons').style.display = 'grid';
+                }
             }
         }
 
@@ -1878,6 +1901,13 @@
                 console.error('初始化存储失败:', e);
             }
         })();
+
+        // --- 注册 Service Worker（缓存 libs + models）---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => {
+                console.log('SW 注册失败:', err);
+            });
+        }
     </script>
 </body>
 
