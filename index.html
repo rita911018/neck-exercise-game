@@ -977,12 +977,13 @@
                 loadingBar.style.width = pct + '%';
             }
 
+            const t0 = Date.now();
             preloadPromise = (async () => {
                 try {
-                    setProgress(10, '⏳ 正在连接摄像头...');
+                    setProgress(10, '⏳ 正在连接摄像头...（首次约10-20秒）');
                     await setupCamera();
 
-                    setProgress(40, '⏳ 正在加载AI模型...');
+                    setProgress(40, '⏳ 正在加载AI模型...（约5MB）');
                     const modelConfig = {
                         modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
                         enableSmoothing: true,
@@ -992,11 +993,12 @@
                         poseDetection.SupportedModels.MoveNet, modelConfig
                     );
 
-                    setProgress(80, '⏳ 正在预热引擎...');
+                    setProgress(80, '⏳ 正在预热引擎...马上就好');
                     // 预热：跑一帧让 WebGL shader 编译完成
                     await detector.estimatePoses(video);
 
-                    setProgress(100, '✅ 准备就绪，点击开始!');
+                    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+                    setProgress(100, `✅ 准备就绪（加载用时${elapsed}秒），点击开始!`);
                     isModelLoaded = true;
                     btnStart.disabled = false;
                     btnStart.style.opacity = '1';
