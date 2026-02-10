@@ -1030,6 +1030,16 @@
                     return;
                 }
 
+                // 检测是否有缓存，估算预计时间（显示时间 = 估算 + 10秒）
+                let estTime = '约15-18秒';
+                if ('caches' in window) {
+                    const cache = await caches.open('game-cache-v2');
+                    const keys = await cache.keys();
+                    if (keys.length > 0) estTime = '约11-12秒';
+                }
+
+                setProgress(5, '⏳ 正在加载...（预计' + estTime + '）');
+
                 // 只等 TF.js 脚本加载完（不等 detector）
                 if (!tfScriptsLoaded) {
                     setProgress(5, '⏳ 正在加载AI引擎...');
