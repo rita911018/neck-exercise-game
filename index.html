@@ -1004,7 +1004,11 @@
                     btnStart.style.opacity = '1';
                 } catch (err) {
                     console.error('预加载失败:', err);
-                    setProgress(0, '⚠️ 预加载失败，点击开始重试');
+                    if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
+                        setProgress(0, '⚠️ 摄像头权限被拒绝，请点击地址栏左侧🔒图标，将摄像头权限改为"允许"后刷新页面');
+                    } else {
+                        setProgress(0, '⚠️ 预加载失败，点击开始重试');
+                    }
                     btnStart.disabled = false;
                     btnStart.style.opacity = '1';
                     preloadPromise = null; // 允许重试
