@@ -255,6 +255,78 @@
             pointer-events: auto;
         }
 
+        /* 新版任务卡样式 */
+        .challenge-modal-new {
+            padding: 16px 16px 12px;
+            max-width: 420px;
+            width: 88%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .challenge-img-wrap {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin: 0;
+        }
+
+        .challenge-img-wrap img {
+            width: 90%;
+            max-height: 45vh;
+            object-fit: contain;
+            border-radius: 16px;
+            border: 3px solid rgba(255, 215, 0, 0.6);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .challenge-desc-text {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #FFFFFF;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 20px rgba(255,215,0,0.4);
+            margin: 12px 0 4px;
+            letter-spacing: 2px;
+        }
+
+        .challenge-bottom-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 4px;
+        }
+
+        .challenge-timeout-text {
+            font-size: 1.1rem;
+            color: #FFD700;
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .challenge-skip-btn {
+            background: #FF5252;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .challenge-bottom-row .timer-container {
+            width: 100px;
+            height: 100px;
+            margin: 0;
+        }
+
+        .challenge-bottom-row .timer-text {
+            font-size: 32px;
+        }
+
         .timer-container {
             position: relative;
             width: 160px;
@@ -360,6 +432,45 @@
             display: inline-block;
             -webkit-box-shadow: none !important;
             -moz-box-shadow: none !important;
+        }
+
+        /* 游戏指引滚动提示 */
+        .game-tips-box {
+            width: 100%;
+            max-width: 340px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .game-tips-label {
+            font-size: 0.75rem;
+            color: rgba(255, 215, 0, 0.6);
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .game-tips-wrapper {
+            height: 28px;
+            overflow: hidden;
+            position: relative;
+        }
+        .game-tips-item {
+            position: absolute;
+            width: 100%;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.75);
+            font-weight: 400;
+            line-height: 28px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+        .game-tips-item.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .game-tips-item.exit {
+            opacity: 0;
+            transform: translateY(-20px);
         }
 
         .menu-grid {
@@ -505,24 +616,28 @@
 
             /* 调整弹窗大小 */
             .modal {
-                width: 85%;
+                width: 90%;
             }
 
-            .modal h2 {
-                font-size: 1.5rem !important;
+            .challenge-modal-new {
+                padding: 12px 12px 10px;
             }
 
-            .modal div[id^="c-icon"] {
-                font-size: 60px !important;
-                margin: 10px 0 !important;
+            .challenge-desc-text {
+                font-size: 1.6rem;
             }
 
-            /* SVG图标样式 */
-            .challenge-icon-svg {
-                width: 100px;
-                height: 100px;
-                margin: 15px auto;
-                display: block;
+            .challenge-bottom-row .timer-container {
+                width: 80px;
+                height: 80px;
+            }
+
+            .challenge-bottom-row .timer-text {
+                font-size: 28px;
+            }
+
+            .challenge-img-wrap img {
+                max-height: 38vh;
             }
 
             .timer-ring {
@@ -573,22 +688,23 @@
             <video id="video" playsinline></video>
             <canvas id="output"></canvas>
 
-            <div id="challenge-modal" class="modal">
-                <h2 id="c-title" style="margin:0; color:#ffb300; font-size:1.8rem;"></h2>
-                <div id="c-icon" style="font-size:80px; margin:15px 0;"></div>
-                <p id="c-desc" style="font-size:1rem; margin:0; color:#ffccbc;"></p>
-                <div class="timer-container" id="c-timer-container">
-                    <svg class="timer-svg" viewBox="0 0 160 160">
-                        <circle class="timer-bg" cx="80" cy="80" r="70"></circle>
-                        <circle class="timer-progress" id="c-timer-bar" cx="80" cy="80" r="70"></circle>
-                    </svg>
-                    <div class="timer-text" id="c-timer">5.0</div>
+            <div id="challenge-modal" class="modal challenge-modal-new">
+                <div id="c-icon" class="challenge-img-wrap"></div>
+                <p id="c-desc" class="challenge-desc-text"></p>
+                <div class="challenge-bottom-row">
+                    <div class="timer-container" id="c-timer-container">
+                        <svg class="timer-svg" viewBox="0 0 160 160">
+                            <circle class="timer-bg" cx="80" cy="80" r="70"></circle>
+                            <circle class="timer-progress" id="c-timer-bar" cx="80" cy="80" r="70"></circle>
+                        </svg>
+                        <div class="timer-text" id="c-timer">5.0</div>
+                    </div>
+                    <p id="c-timeout" class="challenge-timeout-text">超时倒计时: 30秒</p>
                 </div>
-                <p id="c-timeout" style="font-size:0.9rem; color:#FFD700; margin:10px 0;">超时倒计时: 30秒</p>
-                <button id="c-skip-btn" onclick="skipChallenge()"
-                    style="background:#FF5252; color:white; border:none; padding:12px 30px; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer; margin-top:10px;">
+                <button id="c-skip-btn" onclick="skipChallenge()" class="challenge-skip-btn">
                     ⏭️ 跳过任务
                 </button>
+                <h2 id="c-title" style="display:none;"></h2>
             </div>
 
             <!-- Countdown Overlay -->
@@ -631,10 +747,6 @@
 
         <div id="menu-content"
             style="text-align:center; width:100%; display:flex; flex-direction:column; align-items:center;">
-            <p style="font-size:1.1rem; color:#FFD700; margin-bottom:40px; font-weight:600; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);">
-                转动头部和肩膀去接红包 · 缓解疲劳 · 好运连连
-            </p>
-
             <div class="menu-grid" id="menu-buttons">
                 <button class="btn btn-primary" id="btn-start" onclick="init()">🚀 开始挑战</button>
             </div>
@@ -658,14 +770,20 @@
                 最终得分: <span id="res-time" style="color:#FFFFFF; font-weight:bold; text-shadow: 0 0 15px rgba(255, 215, 0, 1);">0</span> 分
             </p>
 
-            <div id="result-best" style="margin-bottom:20px; width:100%; max-width:300px;">
-                <p style="color:#FFD700; font-size:14px; margin-bottom:8px; font-weight:600;">🏆 个人最佳 Top 3</p>
-                <div id="result-best-list" style="color:#fff; font-size:14px; line-height:2;"></div>
-            </div>
-
             <div class="menu-grid">
                 <button class="btn btn-primary" onclick="restartGame()">🔄 再玩一次</button>
-                <button class="btn btn-secondary" id="btn-view-photos" style="display:none;" onclick="viewPhotos()">📸 查看照片</button>
+                <button class="btn btn-secondary" id="btn-view-photos" onclick="viewPhotos()">📸 查看照片</button>
+            </div>
+        </div>
+
+        <div class="game-tips-box" style="position:absolute; bottom:30px; left:50%; transform:translateX(-50%);">
+            <div class="game-tips-label">— 游戏指引 —</div>
+            <div class="game-tips-wrapper" id="game-tips-wrapper">
+                <div class="game-tips-item active">转动头部和肩膀，左右移动去接住掉落的红包</div>
+                <div class="game-tips-item">游戏中会随机弹出小任务，按提示做动作即可完成</div>
+                <div class="game-tips-item">举手、抬头、双手放颈后...跟着做放松肩颈</div>
+                <div class="game-tips-item">每个小任务需保持姿势 3 秒，注意倒计时</div>
+                <div class="game-tips-item">接到的红包越多，分数越高，挑战你的最佳纪录吧</div>
             </div>
         </div>
     </div>
@@ -681,6 +799,27 @@
     </script>
 
     <script>
+        // --- 0. 游戏指引滚动 ---
+        (function() {
+            let tipIndex = 0;
+            let tipTimer = null;
+            function rotateTips() {
+                const wrapper = document.getElementById('game-tips-wrapper');
+                if (!wrapper) return;
+                const items = wrapper.querySelectorAll('.game-tips-item');
+                if (items.length === 0) return;
+                const current = items[tipIndex];
+                current.classList.remove('active');
+                current.classList.add('exit');
+                tipIndex = (tipIndex + 1) % items.length;
+                const next = items[tipIndex];
+                next.classList.remove('exit');
+                next.classList.add('active');
+                setTimeout(() => { current.classList.remove('exit'); }, 600);
+            }
+            tipTimer = setInterval(rotateTips, 3500);
+        })();
+
         // --- 1. 游戏配置 ---
         const CONFIG = {
             gameDuration: 60, // 游戏时长 60秒 (1分钟)
@@ -695,8 +834,8 @@
             {
                 id: 'raise_left_hand',
                 name: '🎊 左手招财',
-                icon: 'icons/raise_left_hand.svg',
-                desc: '举起左手，放松左肩，维持3秒',
+                icon: '任务指引图片/举左手.jpg',
+                desc: '举起左手，放松左肩',
                 check: (kp) => {
                     // 左手必须明显高于左肩
                     const leftUp = kp.lw.y < kp.ls.y - 0.05;
@@ -706,8 +845,8 @@
             {
                 id: 'raise_right_hand',
                 name: '🎊 右手招财',
-                icon: 'icons/raise_right_hand.svg',
-                desc: '举起右手，放松右肩，维持3秒',
+                icon: '任务指引图片/举右手.jpg',
+                desc: '举起右手，放松右肩',
                 check: (kp) => {
                     // 右手必须明显高于右肩
                     const rightUp = kp.rw.y < kp.rs.y - 0.05;
@@ -717,8 +856,8 @@
             {
                 id: 'hands_up',
                 name: '🎆 步步高升',
-                icon: 'icons/hands_up.svg',
-                desc: '双手高举过头，拉伸肩颈，维持3秒',
+                icon: '任务指引图片/高举双手.JPG',
+                desc: '双手高举过头，拉伸肩颈',
                 check: (kp) => {
                     // 双手都必须明显高于肩膀
                     return kp.lw.y < kp.ls.y - 0.08 && kp.rw.y < kp.rs.y - 0.08;
@@ -727,8 +866,8 @@
             {
                 id: 'hands_on_neck',
                 name: '🎁 福气临门',
-                icon: 'icons/hands_on_neck.svg',
-                desc: '双手放在脖子后面，放松颈部，维持3秒',
+                icon: '任务指引图片/双手抱头.JPG',
+                desc: '双手放在脖子后面，放松颈部',
                 check: (kp) => {
                     // 双手都在头部/颈部高度（高于肩膀）
                     const handsUp = kp.lw.y < kp.ls.y && kp.rw.y < kp.rs.y;
@@ -742,8 +881,8 @@
             {
                 id: 'look_up',
                 name: '🌟 抬头看烟花',
-                icon: 'icons/look_up.svg',
-                desc: '抬头朝天看，放松颈部，维持3秒',
+                icon: '任务指引图片/抬头.JPG',
+                desc: '抬头朝天看，放松颈部',
                 check: (kp) => {
                     // 检测鼻子是否明显高于肩膀（抬头状态）
                     const noseY = kp.nose.y;
@@ -1058,6 +1197,13 @@
             // 从所有任务中完全随机选择
             selected = pool[Math.floor(Math.random() * pool.length)];
 
+            // 预加载挑战图标图片（用于截图水印）
+            if (/\.(svg|jpg|jpeg|png|webp|gif)$/i.test(selected.icon)) {
+                const img = new Image();
+                img.src = selected.icon;
+                selected._iconImg = img;
+            }
+
             // 1. Enter Prep Mode
             state.preparing = true;
             state.itemSystem.items = []; // Clear current items
@@ -1066,9 +1212,9 @@
             const m = document.getElementById('challenge-modal');
             document.getElementById('c-title').innerText = selected.name;
 
-            // 显示SVG图标
+            // 显示图标（支持 svg/jpg/png 等图片格式）
             const iconEl = document.getElementById('c-icon');
-            if (selected.icon.endsWith('.svg')) {
+            if (/\.(svg|jpg|jpeg|png|webp|gif)$/i.test(selected.icon)) {
                 iconEl.innerHTML = `<img src="${selected.icon}" class="challenge-icon-svg" alt="${selected.name}">`;
             } else {
                 iconEl.innerText = selected.icon;
@@ -1294,13 +1440,55 @@
             sCtx.drawImage(video, -snapCanvas.width, 0, snapCanvas.width, snapCanvas.height);
             sCtx.restore();
 
-            // 绘制当前挑战的图标做水印
+            // 绘制当前挑战水印：右上角放指引图片 + 左下角红底挑战名
             if (state.challenge) {
-                sCtx.font = `${Math.floor(80 * scale)}px sans-serif`;
-                sCtx.fillText(state.challenge.icon, 20 * scale, 100 * scale);
-                sCtx.fillStyle = "#FFD700";
-                sCtx.font = `bold ${Math.floor(30 * scale)}px sans-serif`;
-                sCtx.fillText(state.challenge.name, 20 * scale, 140 * scale);
+                const sw = snapCanvas.width;
+                const sh = snapCanvas.height;
+
+                // 右上角：挑战指引图片
+                const iconImg = state.challenge._iconImg;
+                if (iconImg && iconImg.complete && iconImg.naturalWidth > 0) {
+                    const iconSize = Math.floor(100 * scale);
+                    const margin = Math.floor(10 * scale);
+                    const ix = sw - iconSize - margin;
+                    const iy = margin;
+                    // 圆角裁剪
+                    const radius = Math.floor(10 * scale);
+                    sCtx.save();
+                    sCtx.beginPath();
+                    sCtx.roundRect(ix, iy, iconSize, iconSize, radius);
+                    sCtx.clip();
+                    sCtx.drawImage(iconImg, ix, iy, iconSize, iconSize);
+                    sCtx.restore();
+                    // 边框
+                    sCtx.strokeStyle = 'rgba(255,215,0,0.8)';
+                    sCtx.lineWidth = 2 * scale;
+                    sCtx.beginPath();
+                    sCtx.roundRect(ix, iy, iconSize, iconSize, radius);
+                    sCtx.stroke();
+                }
+
+                // 左下角：红底 + 白字挑战名
+                const fontSize = Math.floor(22 * scale);
+                sCtx.font = `bold ${fontSize}px sans-serif`;
+                const name = state.challenge.name;
+                const textW = sCtx.measureText(name).width;
+                const padX = Math.floor(12 * scale);
+                const padY = Math.floor(8 * scale);
+                const pillW = textW + padX * 2;
+                const pillH = fontSize + padY * 2;
+                const px = Math.floor(10 * scale);
+                const py = sh - pillH - Math.floor(10 * scale);
+
+                // 红色圆角背景
+                sCtx.fillStyle = 'rgba(230, 0, 18, 0.85)';
+                sCtx.beginPath();
+                sCtx.roundRect(px, py, pillW, pillH, Math.floor(pillH / 2));
+                sCtx.fill();
+
+                // 白色文字
+                sCtx.fillStyle = '#FFFFFF';
+                sCtx.fillText(name, px + padX, py + padY + fontSize * 0.85);
             }
 
             // 压缩并保存（使用较低的质量，确保能保存）
@@ -1363,18 +1551,11 @@
             ov.style.display = 'flex';
             document.getElementById('menu-content').style.display = 'none';
             document.getElementById('result-content').style.display = 'flex';
+            document.querySelector('.game-tips-box').style.display = 'none';
             document.getElementById('res-time').innerText = finalScore;
 
             // 加载 Top 3 并判断新纪录
             await loadBestScores(finalScore);
-
-            // 控制"查看照片"按钮显隐
-            const photosBtn = document.getElementById('btn-view-photos');
-            if (moments.length > 0) {
-                photosBtn.style.display = 'flex';
-            } else {
-                photosBtn.style.display = 'none';
-            }
         }
 
         // --- 辅助 ---
@@ -1557,50 +1738,108 @@
             }, 1500);
         }
 
-        // --- 查看本局照片 ---
-        window.viewPhotos = function() {
-            const moments = state.currentRunMoments;
-            if (!moments || moments.length === 0) return;
-
+        // --- 查看照片（Top 3 历史成绩 + 照片）---
+        window.viewPhotos = async function() {
             const overlay = document.createElement('div');
             overlay.style.cssText = `
-                position:fixed; inset:0; background:rgba(0,0,0,0.95);
+                position:fixed; inset:0; background:#000;
                 z-index:3000; display:flex; flex-direction:column;
-                align-items:center; justify-content:center; padding:20px;
+                align-items:center; padding:30px 20px;
+                overflow-y:auto;
             `;
 
-            const grid = document.createElement('div');
-            grid.style.cssText = `
-                display:flex; flex-wrap:wrap; gap:10px;
-                justify-content:center; max-height:80vh;
-                overflow-y:auto; padding:10px;
-            `;
+            // 标题
+            const title = document.createElement('p');
+            title.style.cssText = 'color:#FFD700; font-size:20px; font-weight:700; margin:0 0 20px 0; letter-spacing:2px;';
+            title.innerText = '🏆 个人最佳 Top 3';
+            overlay.appendChild(title);
 
-            moments.forEach(m => {
-                const img = document.createElement('img');
-                img.src = m.imageData;
-                img.style.cssText = `
-                    width:280px; border-radius:10px;
-                    border:2px solid #FFD700; cursor:pointer;
-                `;
-                img.onclick = () => {
-                    AppStorage.downloadImage(m.imageData,
-                        'snapshot_' + m.timestamp + '.jpg');
-                };
-                grid.appendChild(img);
-            });
+            // 加载 Top 3 成绩及照片
+            const medals = ['🥇', '🥈', '🥉'];
+            try {
+                const scores = await AppStorage.getScores();
+                const top3 = scores.slice(0, 3);
 
+                if (top3.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.style.cssText = 'color:#aaa; font-size:14px; margin:20px 0;';
+                    empty.innerText = '暂无记录';
+                    overlay.appendChild(empty);
+                }
+
+                top3.forEach((s, i) => {
+                    // 每条记录的容器
+                    const card = document.createElement('div');
+                    card.style.cssText = `
+                        width:100%; max-width:400px; margin-bottom:20px;
+                        background:rgba(255,255,255,0.05); border-radius:15px;
+                        padding:15px; border:1px solid rgba(255,215,0,0.3);
+                    `;
+
+                    // 分数行
+                    const scoreLine = document.createElement('div');
+                    scoreLine.style.cssText = 'color:#fff; font-size:16px; font-weight:600; margin-bottom:10px;';
+                    scoreLine.innerHTML = `${medals[i]} ${s.score} 分 <span style="color:#aaa; font-size:12px; margin-left:8px;">${s.date || ''}</span>`;
+                    card.appendChild(scoreLine);
+
+                    // 照片行
+                    const photoRow = document.createElement('div');
+                    photoRow.style.cssText = 'display:flex; gap:8px; justify-content:center;';
+
+                    const moments = [s.moment1, s.moment2].filter(m => m && m.imageData);
+                    if (moments.length > 0) {
+                        moments.forEach(m => {
+                            const img = document.createElement('img');
+                            img.src = m.imageData;
+                            img.style.cssText = 'width:160px; height:120px; object-fit:cover; border-radius:8px; border:2px solid rgba(255,215,0,0.5); cursor:pointer;';
+                            img.onclick = () => AppStorage.downloadImage(m.imageData, 'snapshot_' + (m.timestamp || Date.now()) + '.jpg');
+                            photoRow.appendChild(img);
+                        });
+                    } else {
+                        const noPhoto = document.createElement('span');
+                        noPhoto.style.cssText = 'color:#666; font-size:12px;';
+                        noPhoto.innerText = '无截图';
+                        photoRow.appendChild(noPhoto);
+                    }
+
+                    card.appendChild(photoRow);
+                    overlay.appendChild(card);
+                });
+            } catch (e) {
+                const errEl = document.createElement('div');
+                errEl.style.cssText = 'color:#aaa; font-size:14px;';
+                errEl.innerText = '加载失败';
+                overlay.appendChild(errEl);
+            }
+
+            // 按钮区域
+            const btnBox = document.createElement('div');
+            btnBox.style.cssText = 'display:flex; gap:15px; margin-top:20px;';
+
+            // 关闭按钮（返回结算页）
             const closeBtn = document.createElement('button');
             closeBtn.innerText = '关闭';
             closeBtn.style.cssText = `
-                margin-top:15px; padding:10px 30px; border:none;
+                padding:10px 30px; border:none;
+                background:rgba(255,255,255,0.15); color:#fff; font-weight:bold;
+                border-radius:25px; font-size:16px; cursor:pointer;
+                border:1px solid rgba(255,255,255,0.3);
+            `;
+            closeBtn.onclick = () => overlay.remove();
+            btnBox.appendChild(closeBtn);
+
+            // 返回主页按钮
+            const homeBtn = document.createElement('button');
+            homeBtn.innerText = '返回主页';
+            homeBtn.style.cssText = `
+                padding:10px 30px; border:none;
                 background:#FFD700; color:#000; font-weight:bold;
                 border-radius:25px; font-size:16px; cursor:pointer;
             `;
-            closeBtn.onclick = () => overlay.remove();
+            homeBtn.onclick = () => location.reload();
+            btnBox.appendChild(homeBtn);
 
-            overlay.appendChild(grid);
-            overlay.appendChild(closeBtn);
+            overlay.appendChild(btnBox);
             document.body.appendChild(overlay);
         }
 
