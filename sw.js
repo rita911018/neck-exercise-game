@@ -1,22 +1,12 @@
-const CACHE_NAME = 'game-cache-v1';
+const CACHE_NAME = 'game-cache-v2';
+const CDN = 'cdn.jsdelivr.net';
 
-const PRECACHE_URLS = [
-  'libs/tf-core.min.js',
-  'libs/tf-converter.min.js',
-  'libs/tf-backend-webgl.min.js',
-  'libs/pose-detection.min.js',
-  'models/model.json',
-  'models/group1-shard1of2.bin',
-  'models/group1-shard2of2.bin'
-];
+// 不再预缓存（资源来自 CDN，跨域无法 addAll）
+// 改为运行时缓存
 
-// 安装：预缓存静态资源
+// 安装：直接激活
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
 // 激活：清理旧缓存
@@ -34,11 +24,15 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // libs/ 和 models/ 用 cache-first
-  if (url.pathname.includes('/libs/') || url.pathname.includes('/models/')) {
+  // CDN 资源（libs/ models/）和本地 libs/models 都用 cache-first
+  const isCDN = url.hostname === CDN;
+  const isAsset = url.pathname.includes('/libs/') || url.pathname.includes('/models/');
+
+  if (isCDN || isAsset) {
     event.respondWith(
       caches.match(event.request).then(cached => {
-        return cached || fetch(event.request).then(response => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           return response;
