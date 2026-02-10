@@ -170,3 +170,7 @@ tools to resolve library id and get library docs without me having to explicitly
 - **IIFE 前加分号**：`index.html` 中函数定义后紧跟 `(async function(){})()` 会被 JS 解析为函数调用，必须在 IIFE 前加 `;` 防护
 - **#overlay 是 flex 容器**：其子元素的 `display:none` 可能被覆盖导致不生效，需要独立显隐的内容应放在 `#overlay` 外部作为独立全屏层
 - **页面导航用 display 切换**：`#overlay` 内有 `menu-content`（主菜单）、`result-content`（结算页）通过 display 切换；照片墙 `#photos-overlay` 是独立全屏层（z-index:3000）
+- **主页布局全部用绝对定位**：`#overlay` 内的标题(top:18%)、福马图(top:48%)、按钮区(bottom:115px)、游戏指引(bottom:10px) 均为 `position:absolute`，调整位置时注意互相不重叠
+- **页面切换要同步显隐所有元素**：`winGame()` 隐藏 main-title、sub-title、home-hero、game-tips-box；`goToMenu()` 恢复它们，漏掉任何一个都会导致结算页/主菜单元素重叠
+- **照片查看器分层**：`#photos-overlay`(z:3000) 照片墙 → `#photo-viewer`(z:4000) 图片放大查看，均为独立 fixed 全屏层
+- **截图水印已内嵌**：`captureSnapshot()` 会在截图右上角绘制任务指引图、左下角绘制红底任务名，照片墙无需再额外显示指引图
