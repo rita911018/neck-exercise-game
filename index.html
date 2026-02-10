@@ -775,8 +775,10 @@
 
             <p id="loading-text" style="margin-top:10px; color:#aaa; font-size:14px; display:none;">
                 <span id="loading-msg">⏳ 正在预热AI视觉引擎...</span>
-                <span class="loading-progress"><span class="loading-progress-bar" id="loading-bar"></span></span>
             </p>
+            <div class="loading-progress" id="loading-progress" style="display:none;">
+                <div class="loading-progress-bar" id="loading-bar"></div>
+            </div>
         </div>
 
         <div id="result-content"
@@ -963,8 +965,10 @@
             const loadingText = document.getElementById('loading-text');
             const loadingMsg = document.getElementById('loading-msg');
             const loadingBar = document.getElementById('loading-bar');
+            const loadingProgress = document.getElementById('loading-progress');
             const btnStart = document.getElementById('btn-start');
             loadingText.style.display = 'block';
+            loadingProgress.style.display = 'block';
             btnStart.disabled = true;
             btnStart.style.opacity = '0.5';
 
