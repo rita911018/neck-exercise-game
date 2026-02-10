@@ -789,8 +789,9 @@
     <div id="photos-overlay" style="display:none; position:fixed; inset:0; background:linear-gradient(135deg, #1a0a0a 0%, #2d1414 50%, #1a0a0a 100%); z-index:3000; flex-direction:column; align-items:center; justify-content:center; padding:30px 20px; overflow-y:auto;">
         <p style="color:#FFD700; font-size:20px; font-weight:700; margin:0 0 20px 0; letter-spacing:2px;">🏆 个人最佳 Top 3</p>
         <div id="photos-list"></div>
-        <div style="margin-top:20px;">
+        <div style="margin-top:20px; display:flex; gap:12px;">
             <button class="btn btn-primary" onclick="backToMenu()">🏠 返回主页</button>
+            <button class="btn btn-primary" onclick="clearAllScores()" style="background:linear-gradient(135deg,#555,#333);">🗑️ 清空记录</button>
         </div>
     </div>
 
@@ -882,7 +883,7 @@
                 id: 'hands_on_neck',
                 name: '🎁 福气临门',
                 icon: '任务指引图片/双手抱头.JPG',
-                desc: '双手放在脖子后面，放松颈部',
+                desc: '双手放颈后，放松颈部',
                 check: (kp) => {
                     // 双手都在头部/颈部高度（高于肩膀）
                     const handsUp = kp.lw.y < kp.ls.y && kp.rw.y < kp.rs.y;
@@ -1746,6 +1747,14 @@
 
         // --- 图片放大查看 ---
         let _viewerImageData = null;
+
+        // --- 一键清空记录 ---
+        window.clearAllScores = async function() {
+            if (!confirm('确定要清空所有记录吗？')) return;
+            await AppStorage.clearAllScores();
+            showPhotos();
+        }
+
         window.openPhotoViewer = function(src) {
             _viewerImageData = src;
             document.getElementById('photo-viewer-img').src = src;
