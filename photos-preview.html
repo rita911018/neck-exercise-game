@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照片墙预览</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a0a0a 0%, #2d1414 50%, #1a0a0a 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+        .title {
+            color: #FFD700;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 20px 0;
+            letter-spacing: 2px;
+        }
+        .card {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        .score-line {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .score-line .date {
+            color: #aaa;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        .photo-row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        .photo-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .photo-group .snapshot {
+            width: 130px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid rgba(255,215,0,0.5);
+            cursor: pointer;
+        }
+        .photo-group .guide {
+            width: 60px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.2);
+            opacity: 0.9;
+        }
+        .no-photo {
+            color: #666;
+            font-size: 12px;
+        }
+        .btn {
+            padding: 12px 32px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #E60012 0%, #FF6B00 100%);
+            color: white;
+            margin-top: 20px;
+            letter-spacing: 1px;
+        }
+        .btn:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+        #photo-viewer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.92);
+            z-index: 4000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #photo-viewer img {
+            max-width: 90vw;
+            max-height: 75vh;
+            object-fit: contain;
+            border-radius: 12px;
+            border: 2px solid rgba(255,215,0,0.5);
+        }
+        #photo-viewer .viewer-btns {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        #photo-viewer .viewer-btns button {
+            font-size: 14px;
+            padding: 10px 24px;
+            margin-top: 0;
+        }
+        .btn-close {
+            background: linear-gradient(135deg, #555, #333) !important;
+        }
+    </style>
+</head>
+<body>
+    <p class="title">🏆 个人最佳 Top 3</p>
+    <div id="photos-list"></div>
+    <div>
+        <button class="btn" onclick="alert('返回主页')">🏠 返回主页</button>
+    </div>
+
+    <!-- 图片放大查看浮层 -->
+    <div id="photo-viewer">
+        <img id="photo-viewer-img">
+        <div class="viewer-btns">
+            <button class="btn" onclick="downloadViewerPhoto()">💾 下载照片</button>
+            <button class="btn btn-close" onclick="closePhotoViewer()">✕ 关闭</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 图片放大查看 ---
+        let _viewerImageData = null;
+        function openPhotoViewer(src) {
+            _viewerImageData = src;
+            document.getElementById('photo-viewer-img').src = src;
+            document.getElementById('photo-viewer').style.display = 'flex';
+        }
+        function closePhotoViewer() {
+            document.getElementById('photo-viewer').style.display = 'none';
+            _viewerImageData = null;
+        }
+        function downloadViewerPhoto() {
+            if (!_viewerImageData) return;
+            const a = document.createElement('a');
+            a.href = _viewerImageData;
+            a.download = 'snapshot_' + Date.now() + '.jpg';
+            a.click();
+        }
+        // 生成模拟截图（canvas 绘制占位图）
+        function makePlaceholder(text, bg) {
+            const c = document.createElement('canvas');
+            c.width = 320; c.height = 240;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, 320, 240);
+            // 模拟人形轮廓
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.beginPath();
+            ctx.arc(160, 80, 30, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(140, 110, 40, 70);
+            ctx.fillRect(110, 120, 30, 10);
+            ctx.fillRect(180, 120, 30, 10);
+            ctx.fillRect(145, 180, 12, 50);
+            ctx.fillRect(163, 180, 12, 50);
+            // 文字标签
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 18px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, 160, 230);
+            return c.toDataURL('image/jpeg', 0.8);
+        }
+
+        const mockData = [
+            {
+                score: 8600,
+                date: '2026-02-08',
+                moment1: { imageData: makePlaceholder('🎊 左手招财', '#2a3a2a'), challengeName: '🎊 左手招财', challengeIcon: '任务指引图片/举左手.jpg' },
+                moment2: { imageData: makePlaceholder('🎆 步步高升', '#2a2a3a'), challengeName: '🎆 步步高升', challengeIcon: '任务指引图片/高举双手.JPG' }
+            },
+            {
+                score: 6200,
+                date: '2026-02-06',
+                moment1: { imageData: makePlaceholder('🌟 抬头看烟花', '#3a2a2a'), challengeName: '🌟 抬头看烟花', challengeIcon: '任务指引图片/抬头.JPG' },
+                moment2: null
+            },
+            {
+                score: 4100,
+                date: '2026-02-01',
+                moment1: null,
+                moment2: null
+            }
+        ];
+
+        const medals = ['🥇', '🥈', '🥉'];
+        const container = document.getElementById('photos-list');
+
+        mockData.forEach((s, i) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const scoreLine = document.createElement('div');
+            scoreLine.className = 'score-line';
+            scoreLine.innerHTML = `${medals[i]} ${s.score} 分 <span class="date">${s.date}</span>`;
+            card.appendChild(scoreLine);
+
+            const photoRow = document.createElement('div');
+            photoRow.className = 'photo-row';
+
+            const moments = [s.moment1, s.moment2].filter(m => m && m.imageData);
+            if (moments.length > 0) {
+                moments.forEach(m => {
+                    const group = document.createElement('div');
+                    group.className = 'photo-group';
+
+                    const img = document.createElement('img');
+                    img.src = m.imageData;
+                    img.className = 'snapshot';
+                    img.title = m.challengeName || '';
+                    img.onclick = () => openPhotoViewer(m.imageData);
+                    group.appendChild(img);
+
+                    if (m.challengeIcon && !m.challengeIcon.startsWith('🏃')) {
+                        const guide = document.createElement('img');
+                        guide.src = m.challengeIcon;
+                        guide.className = 'guide';
+                        group.appendChild(guide);
+                    }
+
+                    photoRow.appendChild(group);
+                });
+            } else {
+                const noPhoto = document.createElement('span');
+                noPhoto.className = 'no-photo';
+                noPhoto.innerText = '无截图';
+                photoRow.appendChild(noPhoto);
+            }
+
+            card.appendChild(photoRow);
+            container.appendChild(card);
+        });
+    </script>
+</body>
+</html>
