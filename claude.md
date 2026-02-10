@@ -167,3 +167,6 @@ tools to resolve library id and get library docs without me having to explicitly
 - **编辑大文件分段操作**：index.html 改动多时，按功能逐段编辑，每次改一处，避免上下文混乱
 - **删代码要彻底**：删除功能时追踪所有引用点（定义、初始化、处理逻辑、UI），不留死代码
 - **工具输出分段**：使用工具输出内容时，必须分多次分段输出，避免一次输出过大内容
+- **IIFE 前加分号**：`index.html` 中函数定义后紧跟 `(async function(){})()` 会被 JS 解析为函数调用，必须在 IIFE 前加 `;` 防护
+- **#overlay 是 flex 容器**：其子元素的 `display:none` 可能被覆盖导致不生效，需要独立显隐的内容应放在 `#overlay` 外部作为独立全屏层
+- **页面导航用 display 切换**：`#overlay` 内有 `menu-content`（主菜单）、`result-content`（结算页）通过 display 切换；照片墙 `#photos-overlay` 是独立全屏层（z-index:3000）
