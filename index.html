@@ -457,7 +457,7 @@
             position: absolute;
             width: 100%;
             font-size: 0.95rem;
-            color: rgba(255, 255, 255, 0.75);
+            color: #FFD700;
             font-weight: 400;
             line-height: 28px;
             opacity: 0;
@@ -477,7 +477,7 @@
             display: grid;
             gap: 15px;
             width: 100%;
-            max-width: 200px;
+            max-width: 160px;
         }
 
         .btn {
@@ -742,17 +742,19 @@
 
     <!-- 主菜单 / 结束 遮罩 -->
     <div id="overlay">
-        <h1 class="title" id="main-title" style="position:absolute; top:38%; left:50%; transform:translate(-50%,-100%); white-space:nowrap;">红包"颈"上添花</h1>
-        <p id="sub-title" style="position:absolute; top:38%; left:50%; transform:translateX(-50%); margin-top:10px; font-size:1.3rem; color:#FFFFFF; font-weight:500; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); white-space:nowrap;">新春放松小游戏</p>
+        <h1 class="title" id="main-title" style="position:absolute; top:18%; left:50%; transform:translate(-50%,-100%); white-space:nowrap;">红包"颈"上添花</h1>
+        <p id="sub-title" style="position:absolute; top:18%; left:50%; transform:translateX(-50%); margin-top:10px; font-size:1.3rem; color:#FFFFFF; font-weight:500; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); white-space:nowrap;">新春放松小游戏</p>
+
+        <img id="home-hero" src="主页照片/IMG_4782.jpg" style="position:absolute; top:48%; left:50%; transform:translate(-50%,-50%); max-width:60vw; max-height:38vh; object-fit:contain; border-radius:16px;">
 
         <div id="menu-content"
-            style="text-align:center; width:100%; display:flex; flex-direction:column; align-items:center; position:absolute; bottom:150px; left:0;">
+            style="text-align:center; width:100%; display:flex; flex-direction:column; align-items:center; position:absolute; bottom:115px; left:0;">
             <div class="menu-grid" id="menu-buttons">
                 <button class="btn btn-primary" id="btn-start" onclick="init()">🚀 开始挑战</button>
             </div>
 
 
-            <p id="loading-text" style="margin-top:30px; color:#aaa; font-size:14px; display:none;">
+            <p id="loading-text" style="margin-top:10px; color:#aaa; font-size:14px; display:none;">
                 <span class="spinner">⏳</span> 正在预热AI视觉引擎...
             </p>
         </div>
@@ -772,8 +774,7 @@
             </div>
         </div>
 
-        <div class="game-tips-box" style="position:absolute; bottom:30px; left:50%; transform:translateX(-50%);">
-            <div class="game-tips-label">— 游戏指引 —</div>
+        <div class="game-tips-box" style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%);">
             <div class="game-tips-wrapper" id="game-tips-wrapper">
                 <div class="game-tips-item active">转动头部和肩膀，左右移动去接住掉落的红包</div>
                 <div class="game-tips-item">游戏中会随机弹出小任务，按提示做动作即可完成</div>
@@ -1430,6 +1431,7 @@
             document.getElementById('menu-content').style.display = 'flex';
             document.getElementById('main-title').style.display = '';
             document.getElementById('sub-title').style.display = '';
+            document.getElementById('home-hero').style.display = '';
             document.getElementById('menu-buttons').style.display = 'grid';
             document.getElementById('loading-text').style.display = 'none';
             document.querySelector('.game-tips-box').style.display = '';
@@ -1584,6 +1586,7 @@
             document.getElementById('result-content').style.display = 'flex';
             document.getElementById('main-title').style.display = 'none';
             document.getElementById('sub-title').style.display = 'none';
+            document.getElementById('home-hero').style.display = 'none';
             document.querySelector('.game-tips-box').style.display = 'none';
             document.getElementById('res-time').innerText = finalScore;
 
