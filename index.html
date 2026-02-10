@@ -751,10 +751,6 @@
                 <button class="btn btn-primary" id="btn-start" onclick="init()">🚀 开始挑战</button>
             </div>
 
-            <div id="menu-best" style="margin-top:25px; width:100%; max-width:300px; display:none;">
-                <p style="color:#FFD700; font-size:14px; margin-bottom:8px; font-weight:600;">🏆 个人最佳 Top 3</p>
-                <div id="menu-best-list" style="color:#fff; font-size:14px; line-height:2;"></div>
-            </div>
 
             <p id="loading-text" style="margin-top:30px; color:#aaa; font-size:14px; display:none;">
                 <span class="spinner">⏳</span> 正在预热AI视觉引擎...
@@ -772,7 +768,7 @@
 
             <div class="menu-grid">
                 <button class="btn btn-primary" onclick="restartGame()">🔄 再玩一次</button>
-                <button class="btn btn-secondary" id="btn-view-photos" onclick="viewPhotos()">📸 查看照片</button>
+                <button class="btn btn-secondary" onclick="showPhotos()">📸 查看照片</button>
             </div>
         </div>
 
@@ -785,6 +781,16 @@
                 <div class="game-tips-item">每个小任务需保持姿势 3 秒，注意倒计时</div>
                 <div class="game-tips-item">接到的红包越多，分数越高，挑战你的最佳纪录吧</div>
             </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- 照片墙（独立全屏层）-->
+    <div id="photos-overlay" style="display:none; position:fixed; inset:0; background:linear-gradient(135deg, #1a0a0a 0%, #2d1414 50%, #1a0a0a 100%); z-index:3000; flex-direction:column; align-items:center; justify-content:center; padding:30px 20px; overflow-y:auto;">
+        <p style="color:#FFD700; font-size:20px; font-weight:700; margin:0 0 20px 0; letter-spacing:2px;">🏆 个人最佳 Top 3</p>
+        <div id="photos-list"></div>
+        <div style="margin-top:20px;">
+            <button class="btn btn-primary" onclick="backToMenu()">🏠 返回主页</button>
         </div>
     </div>
 
@@ -1407,9 +1413,22 @@
         }
 
         // --- 重新开始游戏（回到主界面）---
+        // --- 回到主菜单 ---
+        function goToMenu() {
+            document.getElementById('result-content').style.display = 'none';
+            document.getElementById('photos-overlay').style.display = 'none';
+            document.getElementById('menu-content').style.display = 'flex';
+            document.getElementById('menu-buttons').style.display = 'grid';
+            document.getElementById('loading-text').style.display = 'none';
+            document.querySelector('.game-tips-box').style.display = '';
+        }
+
         window.restartGame = function() {
-            // 直接刷新页面，最简单可靠
-            location.reload();
+            goToMenu();
+        }
+
+        window.backToMenu = function() {
+            goToMenu();
         }
 
         // --- 抓拍 ---
@@ -1554,8 +1573,19 @@
             document.querySelector('.game-tips-box').style.display = 'none';
             document.getElementById('res-time').innerText = finalScore;
 
-            // 加载 Top 3 并判断新纪录
-            await loadBestScores(finalScore);
+            // 判断新纪录
+            try {
+                const scores = await AppStorage.getScores();
+                const top3 = scores.slice(0, 3);
+                const badge = document.getElementById('new-record-badge');
+                if (badge && top3.length > 0 && finalScore >= parseFloat(top3[0].score)) {
+                    badge.style.display = 'block';
+                } else if (badge) {
+                    badge.style.display = 'none';
+                }
+            } catch (e) {
+                console.error('判断新纪录失败:', e);
+            }
         }
 
         // --- 辅助 ---
@@ -1664,43 +1694,6 @@
             // 调试模式可关
         }
 
-        // --- 个人最佳 Top 3 ---
-        async function loadBestScores(currentScore) {
-            try {
-                const scores = await AppStorage.getScores();
-                const top3 = scores.slice(0, 3);
-
-                // 判断是否新纪录（当前分数是历史最高）
-                const badge = document.getElementById('new-record-badge');
-                if (badge && top3.length > 0 && currentScore >= parseFloat(top3[0].score)) {
-                    badge.style.display = 'block';
-                } else if (badge) {
-                    badge.style.display = 'none';
-                }
-
-                // 渲染到结束界面
-                renderTop3('result-best-list', top3, currentScore);
-            } catch (e) {
-                console.error('加载最佳成绩失败:', e);
-            }
-        }
-
-        function renderTop3(containerId, top3, highlightScore) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-
-            if (top3.length === 0) {
-                container.innerHTML = '<span style="color:#aaa;">暂无记录</span>';
-                return;
-            }
-
-            const medals = ['🥇', '🥈', '🥉'];
-            container.innerHTML = top3.map((s, i) => {
-                const isHighlight = highlightScore !== undefined && parseFloat(s.score) === highlightScore;
-                const style = isHighlight ? 'color:#FFD700; font-weight:bold;' : '';
-                return `<div style="${style}">${medals[i]} ${s.score} 分 <span style="color:#aaa; font-size:12px;">${s.date || ''}</span></div>`;
-            }).join('');
-        }
 
         function showToast(msg) {
             const toast = document.createElement('div');
@@ -1738,51 +1731,35 @@
             }, 1500);
         }
 
-        // --- 查看照片（Top 3 历史成绩 + 照片）---
-        window.viewPhotos = async function() {
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position:fixed; inset:0; background:#000;
-                z-index:3000; display:flex; flex-direction:column;
-                align-items:center; padding:30px 20px;
-                overflow-y:auto;
-            `;
+        // --- 查看照片 ---
+        window.showPhotos = async function() {
+            document.getElementById('result-content').style.display = 'none';
+            document.getElementById('photos-overlay').style.display = 'flex';
+            document.querySelector('.game-tips-box').style.display = 'none';
 
-            // 标题
-            const title = document.createElement('p');
-            title.style.cssText = 'color:#FFD700; font-size:20px; font-weight:700; margin:0 0 20px 0; letter-spacing:2px;';
-            title.innerText = '🏆 个人最佳 Top 3';
-            overlay.appendChild(title);
+            const container = document.getElementById('photos-list');
+            container.innerHTML = '<p style="color:#aaa;">加载中...</p>';
 
-            // 加载 Top 3 成绩及照片
             const medals = ['🥇', '🥈', '🥉'];
             try {
                 const scores = await AppStorage.getScores();
                 const top3 = scores.slice(0, 3);
 
                 if (top3.length === 0) {
-                    const empty = document.createElement('div');
-                    empty.style.cssText = 'color:#aaa; font-size:14px; margin:20px 0;';
-                    empty.innerText = '暂无记录';
-                    overlay.appendChild(empty);
+                    container.innerHTML = '<p style="color:#aaa; font-size:14px;">暂无记录</p>';
+                    return;
                 }
 
+                container.innerHTML = '';
                 top3.forEach((s, i) => {
-                    // 每条记录的容器
                     const card = document.createElement('div');
-                    card.style.cssText = `
-                        width:100%; max-width:400px; margin-bottom:20px;
-                        background:rgba(255,255,255,0.05); border-radius:15px;
-                        padding:15px; border:1px solid rgba(255,215,0,0.3);
-                    `;
+                    card.style.cssText = 'width:100%; max-width:400px; margin-bottom:20px; background:rgba(255,255,255,0.05); border-radius:15px; padding:15px; border:1px solid rgba(255,215,0,0.3);';
 
-                    // 分数行
                     const scoreLine = document.createElement('div');
                     scoreLine.style.cssText = 'color:#fff; font-size:16px; font-weight:600; margin-bottom:10px;';
                     scoreLine.innerHTML = `${medals[i]} ${s.score} 分 <span style="color:#aaa; font-size:12px; margin-left:8px;">${s.date || ''}</span>`;
                     card.appendChild(scoreLine);
 
-                    // 照片行
                     const photoRow = document.createElement('div');
                     photoRow.style.cssText = 'display:flex; gap:8px; justify-content:center;';
 
@@ -1803,62 +1780,23 @@
                     }
 
                     card.appendChild(photoRow);
-                    overlay.appendChild(card);
+                    container.appendChild(card);
                 });
             } catch (e) {
-                const errEl = document.createElement('div');
-                errEl.style.cssText = 'color:#aaa; font-size:14px;';
-                errEl.innerText = '加载失败';
-                overlay.appendChild(errEl);
+                container.innerHTML = '<p style="color:#aaa; font-size:14px;">加载失败</p>';
             }
-
-            // 按钮区域
-            const btnBox = document.createElement('div');
-            btnBox.style.cssText = 'display:flex; gap:15px; margin-top:20px;';
-
-            // 关闭按钮（返回结算页）
-            const closeBtn = document.createElement('button');
-            closeBtn.innerText = '关闭';
-            closeBtn.style.cssText = `
-                padding:10px 30px; border:none;
-                background:rgba(255,255,255,0.15); color:#fff; font-weight:bold;
-                border-radius:25px; font-size:16px; cursor:pointer;
-                border:1px solid rgba(255,255,255,0.3);
-            `;
-            closeBtn.onclick = () => overlay.remove();
-            btnBox.appendChild(closeBtn);
-
-            // 返回主页按钮
-            const homeBtn = document.createElement('button');
-            homeBtn.innerText = '返回主页';
-            homeBtn.style.cssText = `
-                padding:10px 30px; border:none;
-                background:#FFD700; color:#000; font-weight:bold;
-                border-radius:25px; font-size:16px; cursor:pointer;
-            `;
-            homeBtn.onclick = () => location.reload();
-            btnBox.appendChild(homeBtn);
-
-            overlay.appendChild(btnBox);
-            document.body.appendChild(overlay);
         }
 
-        // --- 页面加载：预加载 + 显示历史 Top 3 ---
-        (async function() {
+        // --- 页面加载：预加载 ---
+        ;(async function() {
             // 启动预加载
             startPreload();
 
-            // 显示主菜单历史最佳
+            // 初始化存储
             try {
                 await AppStorage.init();
-                const scores = await AppStorage.getScores();
-                const top3 = scores.slice(0, 3);
-                if (top3.length > 0) {
-                    document.getElementById('menu-best').style.display = 'block';
-                    renderTop3('menu-best-list', top3);
-                }
             } catch (e) {
-                console.error('加载历史成绩失败:', e);
+                console.error('初始化存储失败:', e);
             }
         })();
     </script>
