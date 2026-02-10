@@ -435,6 +435,23 @@
         }
 
         /* 游戏指引滚动提示 */
+        /* 加载进度条 */
+        .loading-progress {
+            width: 200px;
+            height: 6px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 3px;
+            margin: 10px auto 0;
+            overflow: hidden;
+        }
+        .loading-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #FFD700, #E60012);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
         .game-tips-box {
             width: 100%;
             max-width: 340px;
@@ -755,7 +772,8 @@
 
 
             <p id="loading-text" style="margin-top:10px; color:#aaa; font-size:14px; display:none;">
-                <span class="spinner">⏳</span> 正在预热AI视觉引擎...
+                <span id="loading-msg">⏳ 正在预热AI视觉引擎...</span>
+                <span class="loading-progress"><span class="loading-progress-bar" id="loading-bar"></span></span>
             </p>
         </div>
 
@@ -941,20 +959,24 @@
         // --- 3. 页面打开时预加载摄像头+模型 ---
         function startPreload() {
             const loadingText = document.getElementById('loading-text');
+            const loadingMsg = document.getElementById('loading-msg');
+            const loadingBar = document.getElementById('loading-bar');
             const btnStart = document.getElementById('btn-start');
             loadingText.style.display = 'block';
             btnStart.disabled = true;
             btnStart.style.opacity = '0.5';
 
+            function setProgress(pct, msg) {
+                loadingMsg.textContent = msg;
+                loadingBar.style.width = pct + '%';
+            }
+
             preloadPromise = (async () => {
                 try {
-                    console.log('预加载: 初始化摄像头...');
-                    loadingText.innerHTML = '<span class="spinner">⏳</span> 正在连接摄像头...';
+                    setProgress(10, '⏳ 正在连接摄像头...');
                     await setupCamera();
-                    console.log('预加载: 摄像头就绪');
 
-                    console.log('预加载: 加载AI模型(本地)...');
-                    loadingText.innerHTML = '<span class="spinner">⏳</span> 正在加载AI模型...';
+                    setProgress(40, '⏳ 正在加载AI模型...');
                     const modelConfig = {
                         modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
                         enableSmoothing: true,
@@ -963,15 +985,18 @@
                     detector = await poseDetection.createDetector(
                         poseDetection.SupportedModels.MoveNet, modelConfig
                     );
-                    console.log('预加载: 模型加载完成');
 
+                    setProgress(80, '⏳ 正在预热引擎...');
+                    // 预热：跑一帧让 WebGL shader 编译完成
+                    await detector.estimatePoses(video);
+
+                    setProgress(100, '✅ 准备就绪，点击开始!');
                     isModelLoaded = true;
-                    loadingText.innerHTML = '✅ 准备就绪，点击开始!';
                     btnStart.disabled = false;
                     btnStart.style.opacity = '1';
                 } catch (err) {
                     console.error('预加载失败:', err);
-                    loadingText.innerHTML = '⚠️ 预加载失败，点击开始重试';
+                    setProgress(0, '⚠️ 预加载失败，点击开始重试');
                     btnStart.disabled = false;
                     btnStart.style.opacity = '1';
                     preloadPromise = null; // 允许重试
