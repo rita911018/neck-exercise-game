@@ -986,9 +986,13 @@
         let detectorPromise = null;
         let tfLoadPromise = null;
         function startPreload() {
-            // 先加载 TF.js 脚本
+            // TF.js 和模型文件同时开始下载
             tfLoadPromise = loadTFScripts();
-            // TF.js 就绪后立即创建 detector（不需要摄像头）
+            // 提前用 fetch 预下载模型文件到浏览器缓存
+            fetch(CDN_BASE + 'models/model.json').catch(() => {});
+            fetch(CDN_BASE + 'models/group1-shard1of2.bin').catch(() => {});
+            fetch(CDN_BASE + 'models/group1-shard2of2.bin').catch(() => {});
+            // TF.js 就绪后创建 detector（模型文件已在缓存中，秒读）
             preloadPromise = tfLoadPromise.then(() => {
                 const modelConfig = {
                     modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
