@@ -794,6 +794,15 @@
         </div>
     </div>
 
+    <!-- 图片放大查看浮层 -->
+    <div id="photo-viewer" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:4000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+        <img id="photo-viewer-img" style="max-width:90vw; max-height:75vh; object-fit:contain; border-radius:12px; border:2px solid rgba(255,215,0,0.5);">
+        <div style="margin-top:16px; display:flex; gap:12px;">
+            <button class="btn btn-primary" onclick="downloadViewerPhoto()" style="font-size:14px; padding:10px 24px;">💾 下载照片</button>
+            <button class="btn btn-primary" onclick="closePhotoViewer()" style="font-size:14px; padding:10px 24px; background:linear-gradient(135deg,#555,#333);">✕ 关闭</button>
+        </div>
+    </div>
+
     <script type="module">
         import { ItemSystem } from './js/game/ItemSystem.js';
         import { ParticleSystem } from './js/game/ParticleSystem.js';
@@ -1731,6 +1740,23 @@
             }, 1500);
         }
 
+        // --- 图片放大查看 ---
+        let _viewerImageData = null;
+        window.openPhotoViewer = function(src) {
+            _viewerImageData = src;
+            document.getElementById('photo-viewer-img').src = src;
+            document.getElementById('photo-viewer').style.display = 'flex';
+        }
+        window.closePhotoViewer = function() {
+            document.getElementById('photo-viewer').style.display = 'none';
+            _viewerImageData = null;
+        }
+        window.downloadViewerPhoto = function() {
+            if (_viewerImageData) {
+                AppStorage.downloadImage(_viewerImageData, 'snapshot_' + Date.now() + '.jpg');
+            }
+        }
+
         // --- 查看照片 ---
         window.showPhotos = async function() {
             document.getElementById('result-content').style.display = 'none';
@@ -1766,11 +1792,23 @@
                     const moments = [s.moment1, s.moment2].filter(m => m && m.imageData);
                     if (moments.length > 0) {
                         moments.forEach(m => {
+                            const group = document.createElement('div');
+                            group.style.cssText = 'display:flex; gap:4px; align-items:center;';
+
                             const img = document.createElement('img');
                             img.src = m.imageData;
-                            img.style.cssText = 'width:160px; height:120px; object-fit:cover; border-radius:8px; border:2px solid rgba(255,215,0,0.5); cursor:pointer;';
-                            img.onclick = () => AppStorage.downloadImage(m.imageData, 'snapshot_' + (m.timestamp || Date.now()) + '.jpg');
-                            photoRow.appendChild(img);
+                            img.style.cssText = 'width:130px; height:100px; object-fit:cover; border-radius:8px; border:2px solid rgba(255,215,0,0.5); cursor:pointer;';
+                            img.onclick = () => openPhotoViewer(m.imageData);
+                            group.appendChild(img);
+
+                            if (m.challengeIcon && m.challengeIcon !== '🏃') {
+                                const guide = document.createElement('img');
+                                guide.src = m.challengeIcon;
+                                guide.style.cssText = 'width:60px; height:100px; object-fit:cover; border-radius:8px; border:2px solid rgba(255,255,255,0.2); opacity:0.9;';
+                                group.appendChild(guide);
+                            }
+
+                            photoRow.appendChild(group);
                         });
                     } else {
                         const noPhoto = document.createElement('span');
