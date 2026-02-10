@@ -981,9 +981,12 @@
 
         // --- 3. 页面打开时静默预加载 TF.js + 创建模型 ---
         let detectorPromise = null;
+        let tfLoadPromise = null;
         function startPreload() {
-            preloadPromise = loadTFScripts().then(() => {
-                // TF.js 就绪后立即创建 detector（不需要摄像头）
+            // 先加载 TF.js 脚本
+            tfLoadPromise = loadTFScripts();
+            // TF.js 就绪后立即创建 detector（不需要摄像头）
+            preloadPromise = tfLoadPromise.then(() => {
                 const modelConfig = {
                     modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
                     enableSmoothing: true,
@@ -1024,15 +1027,19 @@
                     return;
                 }
 
-                // 等待 TF.js 预加载完成（通常已在后台完成）
+                // 只等 TF.js 脚本加载完（不等 detector）
                 if (!tfScriptsLoaded) {
                     setProgress(5, '⏳ 正在加载AI引擎...');
-                    if (!preloadPromise) startPreload();
-                    await preloadPromise;
+                    if (!tfLoadPromise) {
+                        if (!preloadPromise) startPreload();
+                        await tfLoadPromise;
+                    } else {
+                        await tfLoadPromise;
+                    }
                 }
 
-                setProgress(20, '⏳ 正在连接摄像头...');
-                // 摄像头 和 detector（后台已在创建）并行等待
+                setProgress(20, '⏳ 正在连接摄像头和AI模型...');
+                // 摄像头立即启动，和 detector（后台已在创建）真正并行
                 const cameraPromise = setupCamera();
                 if (!detectorPromise) {
                     const modelConfig = {
