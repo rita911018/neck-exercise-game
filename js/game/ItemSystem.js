@@ -3,6 +3,7 @@ export class ItemSystem {
         this.config = config;
         this.items = []; // {x, y, id, type, speed}
         this.lastSpawnTime = 0;
+        this.lastUpdateTime = 0;
         this.onCatch = null; // Callback
         this.onHit = null;   // Callback for bad items
     }
@@ -22,10 +23,17 @@ export class ItemSystem {
             this.forceSpawn(now);
         }
 
-        // 2. Move & Collision
+        // 2. Move & Collision（基于时间的移动，避免帧率波动导致卡顿）
+        let dt = 16; // 默认16ms（约60fps）
+        if (this.lastUpdateTime > 0) {
+            dt = Math.min(now - this.lastUpdateTime, 50); // 上限50ms防跳帧
+        }
+        this.lastUpdateTime = now;
+        const dtFactor = dt / 16; // 以60fps为基准的时间系数
+
         for (let i = this.items.length - 1; i >= 0; i--) {
             let item = this.items[i];
-            item.y += item.speed;
+            item.y += item.speed * dtFactor;
 
             // Remove if out of screen
             if (item.y > 1.1) {

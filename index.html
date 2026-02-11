@@ -451,26 +451,70 @@
         }
 
         .loading-tips-box {
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.75);
             border: 1px solid rgba(255,215,0,0.3);
-            border-radius: 12px;
-            padding: 15px 20px;
-            margin: 15px auto 0;
-            max-width: 300px;
+            border-radius: 14px;
+            padding: 18px 22px 14px;
+            width: 300px;
             text-align: center;
+            overflow: hidden;
         }
-        .loading-tips-intro {
+        .loading-tips-category {
             color: #FFD700;
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: 700;
             margin: 0 0 10px;
-            line-height: 1.5;
+            letter-spacing: 1px;
         }
-        .loading-tips-tip {
+        .loading-tips-slides {
+            position: relative;
+            min-height: 60px;
+            margin: 0 0 14px;
+        }
+        .loading-tips-slide {
             color: #fff;
             font-size: 13px;
-            min-height: 20px;
-            transition: opacity 0.4s;
-            line-height: 1.5;
+            line-height: 1.6;
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            opacity: 0;
+            animation: tipCycle 40s infinite;
+        }
+        .loading-tips-slide:nth-child(1) { animation-delay: 0s; }
+        .loading-tips-slide:nth-child(2) { animation-delay: 5s; }
+        .loading-tips-slide:nth-child(3) { animation-delay: 10s; }
+        .loading-tips-slide:nth-child(4) { animation-delay: 15s; }
+        .loading-tips-slide:nth-child(5) { animation-delay: 20s; }
+        .loading-tips-slide:nth-child(6) { animation-delay: 25s; }
+        .loading-tips-slide:nth-child(7) { animation-delay: 30s; }
+        .loading-tips-slide:nth-child(8) { animation-delay: 35s; }
+        @keyframes tipCycle {
+            0%   { opacity: 0; }
+            2%   { opacity: 1; }
+            10.5%  { opacity: 1; }
+            12.5%  { opacity: 0; }
+            100% { opacity: 0; }
+        }
+        .loading-tips-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-tips-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        .loading-tips-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: background 0.3s, transform 0.3s;
+        }
+        .loading-tips-dot.active {
+            background: #FFD700;
+            transform: scale(1.3);
         }
 
         .game-tips-box {
@@ -791,7 +835,6 @@
                 <button class="btn btn-primary" id="btn-start" onclick="init()">🚀 开始挑战</button>
             </div>
 
-
             <p id="loading-text" style="margin-top:10px; color:#aaa; font-size:14px; display:none;">
                 <span id="loading-msg">⏳ 正在预热AI视觉引擎...</span>
             </p>
@@ -815,6 +858,31 @@
             </div>
         </div>
 
+        <div id="loading-tips" style="display:none; position:absolute; top:45%; left:50%; transform:translate(-50%,-50%);">
+            <div class="loading-tips-box">
+                <div class="loading-tips-slides">
+                    <div class="loading-tips-slide">🎯 这个小游戏的设计初衷，是帮助大家在忙碌的工作间隙放松肩颈</div>
+                    <div class="loading-tips-slide">🎮 游戏需要打开摄像头识别动作，请允许摄像头权限</div>
+                    <div class="loading-tips-slide">🏃 转动头部和肩膀，左右移动去接住掉落的红包</div>
+                    <div class="loading-tips-slide">🎲 游戏中会随机弹出小任务，按提示做动作即可完成</div>
+                    <div class="loading-tips-slide">💪 举手、抬头、双手放颈后...跟着做放松肩颈</div>
+                    <div class="loading-tips-slide">⏱️ 每个小任务需保持姿势 3 秒，注意倒计时</div>
+                    <div class="loading-tips-slide">🧧 接到的红包越多，分数越高，挑战你的最佳纪录吧</div>
+                    <div class="loading-tips-slide">🩺 久坐办公记得每45分钟活动一下，转转脖子、耸耸肩</div>
+                </div>
+                <div class="loading-tips-dots">
+                    <span class="loading-tips-dot"></span>
+                    <span class="loading-tips-dot"></span>
+                    <span class="loading-tips-dot"></span>
+                    <span class="loading-tips-dot"></span>
+                    <span class="loading-tips-dot"></span>
+                    <span class="loading-tips-dot"></span>
+                    <span class="loading-tips-dot"></span>
+                    <span class="loading-tips-dot"></span>
+                </div>
+            </div>
+        </div>
+
         <div class="game-tips-box" style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%);">
             <div class="game-tips-wrapper" id="game-tips-wrapper">
                 <div class="game-tips-item active">转动头部和肩膀，左右移动去接住掉落的红包</div>
@@ -823,14 +891,6 @@
                 <div class="game-tips-item">每个小任务需保持姿势 3 秒，注意倒计时</div>
                 <div class="game-tips-item">接到的红包越多，分数越高，挑战你的最佳纪录吧</div>
             </div>
-        </div>
-    </div>
-
-    <!-- 加载小贴士（独立全屏层，不受 overlay flex 影响）-->
-    <div id="loading-tips" style="display:none; position:fixed; top:28%; left:50%; transform:translateX(-50%); z-index:2000;">
-        <div class="loading-tips-box">
-            <p class="loading-tips-intro">这个小游戏想帮你在忙碌的工作间隙，用玩的方式活动一下肩颈</p>
-            <p class="loading-tips-tip" id="loading-tip-text"></p>
         </div>
     </div>
 
@@ -891,7 +951,7 @@
             thresholds: [10, 25, 40, 55], // 触发挑战的时间点（秒）- 共4次任务，间隔约15秒
             holdTime: 3000, // 保持姿势 3000ms (3秒)
             packetSpawnRate: 1500, // 生成间隔
-            packetSpeed: 0.009 // 基础速度（从0.006加快到0.009，提升50%）
+            packetSpeed: 0.012 // 基础速度
         };
 
         // 姿势定义 - 春节喜庆动作
@@ -985,7 +1045,7 @@
         let detector, video, canvas, ctx;
         let isModelLoaded = false;
         let preloadPromise = null; // 预加载 Promise
-        let loadingTipTimer = null; // 加载小贴士轮播定时器
+        // loadingTipTimer 已移除，改为手动翻页
 
         // CDN 加速路径（jsDelivr 国内有节点）
         const CDN_BASE = 'https://cdn.jsdelivr.net/gh/rita911018/neck-exercise-game@main/';
@@ -1042,6 +1102,10 @@
         // --- 初始化（用户点击开始） ---
         async function init() {
             document.getElementById('menu-buttons').style.display = 'none';
+            document.getElementById('main-title').style.display = 'none';
+            document.getElementById('sub-title').style.display = 'none';
+            document.getElementById('home-hero').style.display = 'none';
+            document.querySelector('.game-tips-box').style.display = 'none';
             const loadingText = document.getElementById('loading-text');
             const loadingMsg = document.getElementById('loading-msg');
             const loadingBar = document.getElementById('loading-bar');
@@ -1049,28 +1113,9 @@
             loadingText.style.display = 'block';
             loadingProgress.style.display = 'block';
 
-            // 显示健康小贴士轮播
-            const tips = [
-                '🧘 久坐不动的你，脖子已经在写投诉信了',
-                '💡 每45分钟站起来走走，假装去接水也行',
-                '👀 屏幕放到眼睛平齐的高度，别让脖子当低头族',
-                '🙆 转转头、耸耸肩，同事以为你在跳舞也没关系',
-                '💧 多喝水，上厕所也算运动的一种',
-                '🌟 你的颈椎每天陪你加班，记得对它好一点'
-            ];
+            // 显示加载引导卡片（纯CSS动画轮播）
             const tipsBox = document.getElementById('loading-tips');
-            const tipText = document.getElementById('loading-tip-text');
             tipsBox.style.display = 'block';
-            let tipIdx = 0;
-            tipText.textContent = tips[0];
-            loadingTipTimer = setInterval(() => {
-                tipIdx = (tipIdx + 1) % tips.length;
-                tipText.style.opacity = 0;
-                setTimeout(() => {
-                    tipText.textContent = tips[tipIdx];
-                    tipText.style.opacity = 1;
-                }, 400);
-            }, 3000);
 
             function setProgress(pct, msg) {
                 loadingMsg.textContent = msg;
@@ -1084,7 +1129,6 @@
                     loadingText.style.display = 'none';
                     loadingProgress.style.display = 'none';
                     document.getElementById('loading-tips').style.display = 'none';
-                    clearInterval(loadingTipTimer);
                     document.getElementById('overlay').style.display = 'none';
                     document.getElementById('debugger').style.display = 'block';
                     startGame();
@@ -1139,7 +1183,6 @@
                 setProgress(100, `✅ 准备就绪（用时${elapsed}秒）`);
                 isModelLoaded = true;
 
-                clearInterval(loadingTipTimer);
                 tipsBox.style.display = 'none';
                 loadingText.style.display = 'none';
                 document.getElementById('overlay').style.display = 'none';
@@ -1220,28 +1263,42 @@
 
             updateUI();
             renderLoop();
+            poseLoop();
         }
 
         // --- 4. 循环 ---
-        async function renderLoop() {
+        // 姿态检测结果（异步更新，不阻塞渲染）
+        let latestPoses = [];
+        let poseRunning = false;
+
+        async function poseLoop() {
+            if (!state.active) return;
+            if (state.paused) {
+                setTimeout(poseLoop, 100);
+                return;
+            }
+            try {
+                latestPoses = await detector.estimatePoses(video);
+            } catch(e) {}
+            setTimeout(poseLoop, 80);
+        }
+
+        function renderLoop() {
             if (!state.active) return;
             if (state.paused) {
                 requestAnimationFrame(renderLoop);
                 return;
             }
 
-            const poses = await detector.estimatePoses(video);
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // 清空
-            // 绘制半透明蒙版以突出挑战？不，保持清晰
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // 绘制物品和粒子（无论是否有人）
             state.itemSystem.draw(ctx, canvas.width, canvas.height);
             state.particleSystem.draw(ctx, canvas.width, canvas.height);
 
-            if (poses.length > 0) {
-                const kp = normalizeKeypoints(poses[0].keypoints);
-                drawSkeleton(poses[0].keypoints); // 绘制骨架
+            if (latestPoses.length > 0) {
+                const kp = normalizeKeypoints(latestPoses[0].keypoints);
+                drawSkeleton(latestPoses[0].keypoints);
 
                 if (kp.nose.score > 0.3) {
                     gameLogic(kp);
@@ -1581,7 +1638,6 @@
             document.getElementById('menu-buttons').style.display = 'grid';
             document.getElementById('loading-text').style.display = 'none';
             document.getElementById('loading-tips').style.display = 'none';
-            clearInterval(loadingTipTimer);
             document.querySelector('.game-tips-box').style.display = '';
         }
 
@@ -1738,7 +1794,6 @@
             document.getElementById('loading-tips').style.display = 'none';
             document.getElementById('loading-text').style.display = 'none';
             document.getElementById('loading-progress').style.display = 'none';
-            clearInterval(loadingTipTimer);
             document.querySelector('.game-tips-box').style.display = 'none';
             document.getElementById('res-time').innerText = finalScore;
 
