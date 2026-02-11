@@ -450,6 +450,29 @@
             transition: width 0.4s ease;
         }
 
+        .loading-tips-box {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,215,0,0.3);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin: 15px auto 0;
+            max-width: 300px;
+            text-align: center;
+        }
+        .loading-tips-intro {
+            color: #FFD700;
+            font-size: 13px;
+            margin: 0 0 10px;
+            line-height: 1.5;
+        }
+        .loading-tips-tip {
+            color: #fff;
+            font-size: 13px;
+            min-height: 20px;
+            transition: opacity 0.4s;
+            line-height: 1.5;
+        }
+
         .game-tips-box {
             width: 100%;
             max-width: 340px;
@@ -775,7 +798,7 @@
             <div class="loading-progress" id="loading-progress" style="display:none;">
                 <div class="loading-progress-bar" id="loading-bar"></div>
             </div>
-        </div>
+            </div>
 
         <div id="result-content"
             style="display:none; text-align:center; width:100%; flex-direction:column; align-items:center;">
@@ -801,6 +824,13 @@
                 <div class="game-tips-item">接到的红包越多，分数越高，挑战你的最佳纪录吧</div>
             </div>
         </div>
+    </div>
+
+    <!-- 加载小贴士（独立全屏层，不受 overlay flex 影响）-->
+    <div id="loading-tips" style="display:none; position:fixed; top:28%; left:50%; transform:translateX(-50%); z-index:2000;">
+        <div class="loading-tips-box">
+            <p class="loading-tips-intro">这个小游戏想帮你在忙碌的工作间隙，用玩的方式活动一下肩颈</p>
+            <p class="loading-tips-tip" id="loading-tip-text"></p>
         </div>
     </div>
 
@@ -955,6 +985,7 @@
         let detector, video, canvas, ctx;
         let isModelLoaded = false;
         let preloadPromise = null; // 预加载 Promise
+        let loadingTipTimer = null; // 加载小贴士轮播定时器
 
         // CDN 加速路径（jsDelivr 国内有节点）
         const CDN_BASE = 'https://cdn.jsdelivr.net/gh/rita911018/neck-exercise-game@main/';
@@ -1017,6 +1048,29 @@
             const loadingProgress = document.getElementById('loading-progress');
             loadingText.style.display = 'block';
             loadingProgress.style.display = 'block';
+
+            // 显示健康小贴士轮播
+            const tips = [
+                '🧘 久坐不动的你，脖子已经在写投诉信了',
+                '💡 每45分钟站起来走走，假装去接水也行',
+                '👀 屏幕放到眼睛平齐的高度，别让脖子当低头族',
+                '🙆 转转头、耸耸肩，同事以为你在跳舞也没关系',
+                '💧 多喝水，上厕所也算运动的一种',
+                '🌟 你的颈椎每天陪你加班，记得对它好一点'
+            ];
+            const tipsBox = document.getElementById('loading-tips');
+            const tipText = document.getElementById('loading-tip-text');
+            tipsBox.style.display = 'block';
+            let tipIdx = 0;
+            tipText.textContent = tips[0];
+            loadingTipTimer = setInterval(() => {
+                tipIdx = (tipIdx + 1) % tips.length;
+                tipText.style.opacity = 0;
+                setTimeout(() => {
+                    tipText.textContent = tips[tipIdx];
+                    tipText.style.opacity = 1;
+                }, 400);
+            }, 3000);
 
             function setProgress(pct, msg) {
                 loadingMsg.textContent = msg;
@@ -1082,6 +1136,8 @@
                 setProgress(100, `✅ 准备就绪（用时${elapsed}秒）`);
                 isModelLoaded = true;
 
+                clearInterval(loadingTipTimer);
+                tipsBox.style.display = 'none';
                 loadingText.style.display = 'none';
                 document.getElementById('overlay').style.display = 'none';
                 document.getElementById('debugger').style.display = 'block';
@@ -1674,6 +1730,10 @@
             document.getElementById('main-title').style.display = 'none';
             document.getElementById('sub-title').style.display = 'none';
             document.getElementById('home-hero').style.display = 'none';
+            document.getElementById('loading-tips').style.display = 'none';
+            document.getElementById('loading-text').style.display = 'none';
+            document.getElementById('loading-progress').style.display = 'none';
+            clearInterval(loadingTipTimer);
             document.querySelector('.game-tips-box').style.display = 'none';
             document.getElementById('res-time').innerText = finalScore;
 
