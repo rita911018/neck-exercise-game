@@ -1082,6 +1082,9 @@
                 if (isModelLoaded) {
                     // 已加载过，直接开始游戏
                     loadingText.style.display = 'none';
+                    loadingProgress.style.display = 'none';
+                    document.getElementById('loading-tips').style.display = 'none';
+                    clearInterval(loadingTipTimer);
                     document.getElementById('overlay').style.display = 'none';
                     document.getElementById('debugger').style.display = 'block';
                     startGame();
@@ -1577,6 +1580,8 @@
             document.getElementById('home-hero').style.display = '';
             document.getElementById('menu-buttons').style.display = 'grid';
             document.getElementById('loading-text').style.display = 'none';
+            document.getElementById('loading-tips').style.display = 'none';
+            clearInterval(loadingTipTimer);
             document.querySelector('.game-tips-box').style.display = '';
         }
 
