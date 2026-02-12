@@ -1047,8 +1047,8 @@
         let preloadPromise = null; // 预加载 Promise
         // loadingTipTimer 已移除，改为手动翻页
 
-        // CDN 加速路径（jsDelivr 国内有节点）
-        const CDN_BASE = 'https://cdn.jsdelivr.net/gh/rita911018/neck-exercise-game@main/';
+        // 资源路径（使用相对路径，GitHub Pages 直接从仓库加载）
+        const CDN_BASE = './';
 
         // --- 2.5 动态加载 TF.js 脚本（避免阻塞首屏渲染）---
         let tfScriptsLoaded = false;
